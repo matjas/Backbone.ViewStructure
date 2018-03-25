@@ -20,7 +20,7 @@ module.exports = function (env) {
             loaders: [
                 {
                     test: /\.html$/,
-                    loader: 'file-loader?name=[name].[ext]'
+                    loader: 'html-loader?name=[name].[ext]'
                 },
                 {
                     test: /\.less$/,

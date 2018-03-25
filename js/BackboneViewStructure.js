@@ -105,6 +105,8 @@
             if (this.onRender){
                 this.onRender();
             }
+
+            return this;
         }
     });
 
