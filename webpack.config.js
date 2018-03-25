@@ -5,7 +5,6 @@ const NpmInstallPlugin = require('npm-install-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
-
 module.exports = function (env) {
     const isDevelopment = env === 'development';
     console.log(`This is a ${isDevelopment ? "development" : "production"} build`);
@@ -22,6 +21,16 @@ module.exports = function (env) {
                 {
                     test: /\.html$/,
                     loader: 'file-loader?name=[name].[ext]'
+                },
+                {
+                    test: /\.less$/,
+                    use: [{
+                        loader: "style-loader" // creates style nodes from JS strings
+                    }, {
+                        loader: "css-loader" // translates CSS into CommonJS
+                    }, {
+                        loader: "less-loader" // compiles Less to CSS
+                    }]
                 }
             ]
         },

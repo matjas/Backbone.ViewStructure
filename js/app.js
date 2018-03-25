@@ -3,6 +3,7 @@ const _ = require('underscore');
 const Backbone = require('backbone');
 const examples = require('../examples/index');
 const applicationRouter = require('./router');
+require('../style/app.less');
 
 var HomeView = Backbone.View.extend({
     el: '#view-container',
