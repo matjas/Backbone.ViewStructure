@@ -1,6 +1,7 @@
 const Backbone = require('backbone');
 const _ = require('underscore');
 const applicationRouter = require('../../js/router');
+const books = require('../helpers/booksCollection');
 
 var ModuleView = Backbone.View.extend({
     el: '#view-container',
