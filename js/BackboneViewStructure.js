@@ -120,7 +120,7 @@
             var data;
 
             if (this.collection){
-                data = this.collection.toJSON();
+                data = {items: this.collection.toJSON()};
             }
 
             return data;

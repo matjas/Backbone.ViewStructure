@@ -1,0 +1,32 @@
+ <% _.each(items, function(item) { %>
+    <div class="book">
+        <dl class="row">
+            <dt class="col-sm-3">Isbn</dt>
+            <dd class="col-sm-9"><%= item.isbn %></dd>
+
+            <dt class="col-sm-3">Title</dt>
+            <dd class="col-sm-9"><%= item.title %></dd>
+
+            <dt class="col-sm-3">Subtitle</dt>
+            <dd class="col-sm-9"><%= item.subtitle %></dd>
+
+            <dt class="col-sm-3 text-truncate">Author</dt>
+            <dd class="col-sm-9"><%= item.author %></dd>
+
+            <dt class="col-sm-3">Published</dt>
+            <dd class="col-sm-9 published"><%= item.published %></dd>
+
+            <dt class="col-sm-3">Publisher</dt>
+            <dd class="col-sm-9"><%= item.publisher %></dd>
+
+            <dt class="col-sm-3">Pages</dt>
+            <dd class="col-sm-9"><%= item.pages %></dd>
+
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9"><%= item.description %></dd>
+
+            <dt class="col-sm-3">Website</dt>
+            <dd class="col-sm-9"><%= item.website %></dd>
+        </dl>
+    </div>
+ <% }) %>
