@@ -193,13 +193,13 @@
 
         // render a single model
        renderModel: function(model){
-           var ViewType = this.getModelView(item);
-           var view = new ViewType({model: item});
+           var ViewType = this.getModelView(model);
+           var view = new ViewType({model: model});
 
            // store the child view for this model
            this.children[model.cid] = view;
 
-           view.render();
+           //view.render();
            return view;
        },
 
