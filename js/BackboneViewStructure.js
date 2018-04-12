@@ -88,7 +88,7 @@
         buildTemplateCache: function(){
             var proto = Object.getPrototypeOf(this);
 
-            if (proto.templateCache) { return; }
+            if (proto.templateCache || !this.template) { return; }
                 proto.templateCache = _.template(this.template);
         },
 

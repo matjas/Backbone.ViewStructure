@@ -13,9 +13,9 @@ var BooksCollectionView = ViewStructurePlugin.CollectionView.extend({
 var CollectionView = Backbone.View.extend({
     el: '#view-container',
     template: _.template(
-        '<h1>Collection View</h1>\n<div class="row">\n    <scetion class="col">\n        <h3>Base usage</h3>\n        <pre>\n            <code>\n                var BookView = ViewStructurePlugin.ModelView.extend({\n                    el: \'body\',\n                    template: bookTemplate\n                });\n                var bookView = new BookView({model: bookObj});\n                bookView.render();\n            </code>\n        </pre>\n        <div class="collectionView"></div>\n    </scetion>\n</div>'),
+        '<h1>Collection View</h1>\n<div class="row">\n    <section class="col">\n        <h3>Base usage</h3>\n        <pre>\n            <code>\n                var BookView = ViewStructurePlugin.ModelView.extend({\n                    el: \'body\',\n                    template: bookTemplate\n                });\n                var bookView = new BookView({model: bookObj});\n                bookView.render();\n            </code>\n        </pre>\n        <div class="collectionView"></div>\n    </section>\n</div>'),
     initialize: function () {
-        this.collectionView = new BooksCollectionView ({
+        this.collectionView = new BooksCollectionView({
             collection: new Backbone.Collection(books)
         });
         
