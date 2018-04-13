@@ -285,7 +285,7 @@
         },
 
         close: function(){
-            // close the Layout
+            // close the Layout before close regions. Avoid reflow.
             ViewStructurePlugin.Layout.prototype.close.call(this);
             // close the regions
             this.closeRegions();

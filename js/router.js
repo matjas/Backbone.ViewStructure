@@ -10,7 +10,8 @@ var ApplicationRouter = Backbone.Router.extend({
         "home": "home",
         "modelView": "modelView",
         "collectionView": "collectionView",
-        "collectionModelView": "collectionModelView"
+        "collectionModelView": "collectionModelView",
+        "layoutView": "layoutView"
     },
 
     deselectMenu: function(){
@@ -37,6 +38,10 @@ var ApplicationRouter = Backbone.Router.extend({
 
     collectionModelView: function() {
         this.selectMenu('.collectionModelView-menu');
+    },
+
+    layoutView: function() {
+        this.selectMenu('.layoutView-menu')
     }
 });
 
