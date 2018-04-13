@@ -180,7 +180,7 @@
             }
 
             // remove it from the children
-            this.children[model.cid] = undefined;
+            this.children[view.model.cid] = undefined;
        },
 
         // close and remove all children
@@ -199,7 +199,7 @@
            // store the child view for this model
            this.children[model.cid] = view;
 
-           //view.render();
+           view.render();
            return view;
        },
 
