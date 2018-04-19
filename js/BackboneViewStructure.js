@@ -43,7 +43,7 @@
             // first time it is used. cache it after th t”
             ensureEl: function(){
                 if (this.$el){ return; }
-                    this.$el = $(this.el);
+                this.$el = $(this.el);
             },
             // show a view and close an existing view,
             // if one is already in this DOM element
@@ -80,6 +80,9 @@
      */
     ViewStructurePlugin.BaseView = Backbone.View.extend(/**@lends Backbone.View#*/{
 
+        //default template
+        template: "<div></div>",
+
         constructor: function(options){
             Backbone.View.prototype.constructor.apply(this, arguments);
             this.buildTemplateCache();
@@ -89,7 +92,7 @@
             var proto = Object.getPrototypeOf(this);
 
             if (proto.templateCache || !this.template) { return; }
-                proto.templateCache = _.template(this.template);
+            proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
         },
 
         render: function(){
@@ -155,7 +158,15 @@
         // event handler for model added to collection
         modelAdded: function(model){
             var view = this.renderModel(model);
-            this.$el.append(view.$el);
+            var collectionIdx = this.collection.indexOf(model);
+            var childEl;
+
+            if (collectionIdx <= 0) {
+                this.$el.prepend(view.$el);
+            } else {
+                childEl = this.getNthChildView(collectionIdx);
+                childEl ? view.$el.insertAfter(childEl) : this.$el.append(view.$el);
+            }
         },
 
         // handle removing an individual model
@@ -170,6 +181,23 @@
             this.closeChildView(view);
         },
 
+        // get child view by model
+        getChildViewByModel: function(model){
+            return this.children[model.cid];
+        },
+
+        // get child view by index
+        getNthChildView: function (idx) {
+            var childEl = this.$el.find("> :nth-child(" + idx + ")");
+            return childEl.length > 0 ? childEl[0] : undefined;
+        },
+
+        //get last child view
+        getLastChildView: function () {
+            var view = this.$el.find("> :last-child");
+            return view.length > 0 ? view[0] : undefined;
+        },
+
         // a method to close an individual view
         closeChildView: function(view){
             if (!view){ return; }
@@ -181,7 +209,7 @@
 
             // remove it from the children
             this.children[view.model.cid] = undefined;
-       },
+        },
 
         // close and remove all children
         closeChildren: function(){
@@ -192,35 +220,35 @@
         },
 
         // render a single model
-       renderModel: function(model){
-           var ViewType = this.getModelView(model);
-           var view = new ViewType({model: model});
+        renderModel: function(model){
+            var ViewType = this.getModelView(model);
+            var view = new ViewType({model: model});
 
-           // store the child view for this model
-           this.children[model.cid] = view;
+            // store the child view for this model
+            this.children[model.cid] = view;
 
-           view.render();
-           return view;
-       },
+            view.render();
+            return view;
+        },
 
-       // render the entire collection
-       render: function(){
-           var html = [];
+        // render the entire collection
+        render: function(){
+            var html = [];
 
-           this.closeChildren();
+            this.closeChildren();
 
-           // render a model view for each model
-           // and push the results
+            // render a model view for each model
+            // and push the results
             this.collection.each(function(model){
                 var view = this.renderModel(model);
                 html.push(view.$el);
             }, this);
-             // populate the collection view
-             // with the rendered results
-             this.$el.html(html);
+            // populate the collection view
+            // with the rendered results
+            this.$el.html(html);
 
-             return this;
-       },
+            return this;
+        },
         // override remove and have it
         // close all the children
         remove: function(){
@@ -282,6 +310,11 @@
                 // create the region, assign to the layout
                 this[name] = new Region({el: el});
             }, this);
+
+            // Call the `onRegions` method if it exists
+            if (this.onRegionsConf){
+                this.onRegionsConf();
+            }
         },
 
         close: function(){
