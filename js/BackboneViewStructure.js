@@ -42,6 +42,11 @@
         }
         // extend the Region with the correct methods
         _.extend(R.prototype, {
+            _isDestroyed: false,
+
+            isDestroyed: function() {
+                return this._isDestroyed;
+            },
             // A method to close the current view
             closeView: function (view) {
                 view && destroyView(view);
@@ -72,6 +77,14 @@
                 if (_.isFunction(view.onShow)) {
                     view.onShow();
                 }
+            },
+            destroy: function(){
+                if (this._isDestroyed) { return this; }
+
+                this._isDestroyed = true;
+                this.stopListening();
+
+                return this;
             }
         });
         // export the Region type so it can be used
@@ -129,7 +142,7 @@
 
             return this;
         },
-        _removeElement() {
+        _removeElement(){
             this.$el.off();
             this.$el.remove();
             //this.Dom.detachEl(this.el, this.$el);
@@ -410,6 +423,9 @@
 
                 // create the region, assign to the layout
                 this[name] = new Region({el: el});
+
+                // save parent view
+                this[name][_parentView] = this;
             }, this);
 
             // Call the `onRegions` method if it exists
