@@ -15,6 +15,22 @@
 }(this, function (Backbone, _, jQuery) {
     'use strict';
 
+    var destroyView = function (view) {
+        if (view.destroy) {
+            view.destroy();
+            return;
+        }
+
+        view.remove();
+
+        view.stopListening();
+
+        view._isAttached = false;
+
+        view._isDestroyed = true;
+
+    };
+
     // Define a re-usable "Region" object
     var Region = (function (Backbone, $)  {
         // Define the Region constructor function
@@ -28,9 +44,10 @@
         _.extend(R.prototype, {
             // A method to close the current view
             closeView: function (view) {
-                if (view && view.remove) {
-                    view.remove();
-                }
+                view && destroyView(view);
+                // if (view && view.remove) {
+                //     view.remove();
+                // }
             },
             // A method to render and show a new view
             openView: function (view) {
@@ -60,6 +77,69 @@
         // export the Region type so it can be used
         return R;
     })(Backbone, jQuery);
+
+    //Mixins
+    var Mixins = {};
+
+    //ViewMixin
+    Mixins.View = {
+        _isRendered: false,
+
+        isRendered() {
+            return !!this._isRendered;
+        },
+        _isDestroyed: false,
+
+        isDestroyed () {
+            return !!this._isDestroyed;
+        },
+        // Handle destroying the view and its children.
+        destroy: function() {
+            if (this._isDestroyed) { return this; }
+            //const shouldTriggerDetach = this._isAttached && !this._shouldDisableEvents;
+
+            // this.triggerMethod('before:destroy', this, arguments);
+            // if (shouldTriggerDetach) {
+            //     this.triggerMethod('before:detach', this);
+            // }
+
+            // unbind UI elements
+            //this.unbindUIElements();
+
+            // remove the view from the DOM
+            this._removeElement();
+
+            // if (shouldTriggerDetach) {
+            //     this._isAttached = false;
+            //     this.triggerMethod('detach', this);
+            // }
+
+            // remove children after the remove to prevent extra paints
+            this._removeChildren();
+
+            this._isDestroyed = true;
+            this._isRendered = false;
+
+            // Destroy behaviors after _isDestroyed flag
+            //this._destroyBehaviors(...args);
+
+            //this.trigger('destroy', this, arguments);
+
+            this.stopListening();
+
+            return this;
+        },
+        _removeElement() {
+            this.$el.off();
+            this.$el.remove();
+            //this.Dom.detachEl(this.el, this.$el);
+        }
+    };
+
+    //RegionsMixin
+    Mixins.Regions = {
+
+    };
 
     /**
      * @typedef {jQuery|Zepto} $
@@ -110,8 +190,14 @@
             }
 
             return this;
+        },
+        // called by ViewMixin destroy
+        _removeChildren: function() {
+            this.closeRegions && this.closeRegions();
         }
     });
+
+    _.extend(ViewStructurePlugin.BaseView.prototype, Mixins.View, Mixins.Regions);
 
     /**
      * @alias module:ViewStructurePlugin
@@ -167,6 +253,7 @@
                 childEl = this.getNthChildView(collectionIdx);
                 childEl ? view.$el.insertAfter(childEl) : this.$el.append(view.$el);
             }
+            this.trigger('modelAdded', view);
         },
 
         // handle removing an individual model
@@ -179,6 +266,7 @@
             if (!view){ return; }
 
             this.closeChildView(view);
+            this.trigger('modelRemoved', view);
         },
 
         // get child view by model
@@ -192,6 +280,11 @@
             return childEl.length > 0 ? childEl[0] : undefined;
         },
 
+        //find by Index.
+        findByIndex: function (index) {
+            var val = _.values(this.children);
+            return _.values(this.children)[index];
+        },
         //get last child view
         getLastChildView: function () {
             var view = this.$el.find("> :last-child");
@@ -203,12 +296,13 @@
             if (!view){ return; }
 
             // remove the view, if the method is there
-            if (_.isFunction(view.remove)){
-                view.remove();
-            }
+            // if (_.isFunction(view.remove)){
+            //     view.remove();
+            // }
+            destroyView(view);
 
             // remove it from the children
-            this.children[view.model.cid] = undefined;
+            delete this.children[view.model.cid];
         },
 
         // close and remove all children
@@ -247,6 +341,8 @@
             // with the rendered results
             this.$el.html(html);
 
+            this.trigger('render');
+
             return this;
         },
         // override remove and have it
@@ -274,6 +370,11 @@
 
             return data;
         }
+        // _prepareModel: function () {
+        //     if (!this.model instanceof Backbone.Model && _.isObject(this.model)) {
+        //         this.model = new Backbone.Model(this.model);
+        //     }
+        // }
 
     });
 
@@ -327,8 +428,8 @@
             _.each(this.regions, function(selector, name){
                 // grab the region by name, and close it
                 var region = this[name];
-                if (region && _.isFunction(region.close)){
-                    region.close();
+                if (region && region.currentView && _.isFunction(region.currentView.destroy)){
+                    region.currentView.destroy();
                 }
             }, this);
         }
