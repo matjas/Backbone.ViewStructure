@@ -605,5 +605,49 @@
         }
     });
 
+    ViewStructurePlugin.Scroll = ViewStructurePlugin.CollectionModelView.extend({
+
+        constructor: function(options){
+            ViewStructurePlugin.CollectionModelView.call(this, options);
+
+            this.listenTo(this.collection, "shift", this._onCollectionChange);
+            this.on('modelAdded modelRemoved render', this._onCollectionChange);
+        },
+        //elements number
+        nb: 4,
+        focusIdx: 1,
+        _onCollectionChange: function () {
+            this.trigger("focus", this._getFocusedChild(this.focusIdx));
+        },
+        _getFocusedChild: function (index) {
+            return this.findByIndex(index);
+        },
+        getFocusedView: function () {
+            return this._getFocusedChild(this.focusIdx);
+        },
+        forward: function () {
+            var _this = this;
+            if (this.collection && this.collection.length === this.nb) {
+                if (this.isValid && !this.isValid(this.collection.last())) return;
+                //Add pending event
+                //this.collection.push(new Backbone.Model(pendingEventModel));
+
+                //Make request
+                this.collection.shiftForward && this.collection.shiftForward(function(err){
+                    err && _this.trigger('nextEvents', false);
+                });
+            }
+        },
+        back: function () {
+            if (this.collection && this.collection.length === this.nb) {
+                if (this.isValid && !this.isValid(this.collection.first())) return;
+                //Add pending event
+                //this.collection.unshift(new Backbone.Model(pendingEventModel));
+                this.collection.shiftBack && this.collection.shiftBack();
+                this.trigger('nextEvents', true);
+            }
+        }
+    });
+
     return ViewStructurePlugin;
 }));
