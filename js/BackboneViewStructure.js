@@ -711,8 +711,9 @@
                 if (this.isValid && !this.isValid(this.collection.first())) return;
                 //Add pending event
                 //this.collection.unshift(new Backbone.Model(pendingEventModel));
-                this.collection.shiftBack && this.collection.shiftBack();
-                this.trigger('nextEvents', true);
+                this.collection.shiftBack && this.collection.shiftBack(function(err) {
+                    this.trigger('nextEvents', true);
+                });
             }
         }
     });
