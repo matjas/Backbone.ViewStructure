@@ -31,23 +31,107 @@
     };
 
     // Define a re-usable "Region" object
-    var Region = (function (Backbone, $)  {
+    var Region = (function (Backbone, $) {
         // Define the Region constructor function
         // accept an object parameter with an `el`
         // to define the element to manage
-        function R(options){
+        function R(options) {
             this.el = options.el;
             this.currentView = undefined;
         }
+
         // extend the Region with the correct methods
         _.extend(R.prototype, {
             _isDestroyed: false,
 
-            isDestroyed: function() {
+            isDestroyed: function () {
                 return this._isDestroyed;
             },
-            // A method to close the current view
-            closeView: function (view) {
+            _empty(view) {
+                view.off('destroy');
+
+                delete this.currentView;
+
+                if (!view._isDestroyed) {
+                    this._detachView();
+                }
+            },
+            _detachView() {
+                this.detachContents(this.el, this.$el);
+            },
+            detachContents(el, _$el) {
+                //TODO: Create DOM library
+                _$el.contents().detach();
+            },
+            // Empties the Region without destroying the view
+            closeView: function () {
+                var view = this.currentView;
+
+                if (!view) {
+                    return;
+                }
+
+                this._empty(view);
+
+                return view;
+            },
+            _getView(view) {
+
+                if (view._isDestroyed) {
+                    console.log("View has been already destroyed. Can not be used")
+                }
+
+                if (view instanceof Backbone.View) {
+                    return view;
+                }
+
+                return new ViewStructurePlugin.ModelView();
+            },
+            // A method to render and show a new view
+            openView: function (view) {
+                //var view = this.currentView;
+                if (!this.ensureEl()) {
+                    return;
+                }
+
+                view = this._getView(view);
+
+                if (view === this.currentView) { return this; }
+
+                this.currentView = view;
+
+                view.render();
+
+                this.$el.html(view.el);
+
+                return this;
+            },
+
+            // ensure the element is available th
+            // first time it is used. cache it after th t”
+            ensureEl: function () {
+                if (this.$el) {
+                    return true;
+                }
+                this.$el = $(this.el);
+                if(!this.$el || this.$el.length === 0) {
+                    return false
+                }
+                return true;
+            },
+            // show a view and close an existing view,
+            // if one is already in this DOM element
+            show: function (view) {
+                this.closeView(this.currentView);
+                this.openView(view);
+                this._isDestroyed = false;
+                view.on("destroy", this.closeView, this);
+                // run the onShow method if it is found
+                if (_.isFunction(view.onShow)) {
+                    view.onShow();
+                }
+            },
+            destroyView: function (view) {
                 if (!view) return;
                 view.off("destroy");
                 if (view._isDestroyed) {
@@ -57,41 +141,17 @@
 
                 delete this.currentView;
             },
-            // A method to render and show a new view
-            openView: function (view) {
-                this.ensureEl();
-                view.render();
-                this.$el.html(view.el);
-            },
-
-            // ensure the element is available th
-            // first time it is used. cache it after th t”
-            ensureEl: function(){
-                if (this.$el){ return; }
-                this.$el = $(this.el);
-            },
-            // show a view and close an existing view,
-            // if one is already in this DOM element
-            show: function (view) {
-                this.closeView(this.currentView);
-                this.currentView = view;
-                this.openView(view);
-                this._isDestroyed = false;
-                view.on("destroy", this.closeView, this);
-                // run the onShow method if it is found
-                if (_.isFunction(view.onShow)) {
-                    view.onShow();
-                }
-            },
             reset: function () {
                 delete this.$el;
                 return this;
             },
-            destroy: function(){
-                if (this._isDestroyed) { return this; }
+            destroy: function () {
+                if (this._isDestroyed) {
+                    return this;
+                }
 
                 this.reset();
-                this.closeView(this.currentView);
+                this.destroyView(this.currentView);
                 //
                 // if (this._name) {
                 //     this._parentView._removeReferences(this._name);
@@ -124,10 +184,12 @@
             return !!this._isDestroyed;
         },
         // Handle destroying the view and its children.
-        destroy: function() {
-            if (this._isDestroyed) { return this; }
+        destroy: function () {
+            if (this._isDestroyed) {
+                return this;
+            }
             // Call the `onBeforeDestroy` method if it exists
-            if (this.onBeforeDestroy){
+            if (this.onBeforeDestroy) {
                 this.onBeforeDestroy(this);
             }
             //const shouldTriggerDetach = this._isAttached && !this._shouldDisableEvents;
@@ -154,7 +216,7 @@
             this._isDestroyed = true;
             this._isRendered = false;
 
-            if (this.onDestroy){
+            if (this.onDestroy) {
                 this.onDestroy(this);
             }
 
@@ -175,9 +237,7 @@
     };
 
     //RegionsMixin
-    Mixins.Regions = {
-
-    };
+    Mixins.Regions = {};
 
     /**
      * @typedef {jQuery|Zepto} $
@@ -201,21 +261,23 @@
         //default template
         template: "<div></div>",
 
-        constructor: function(options){
+        constructor: function (options) {
             Backbone.View.prototype.constructor.apply(this, arguments);
             this.buildTemplateCache();
         },
 
-        buildTemplateCache: function(){
+        buildTemplateCache: function () {
             var proto = Object.getPrototypeOf(this);
 
-            if (proto.templateCache || !this.template) { return; }
+            if (proto.templateCache || !this.template) {
+                return;
+            }
             proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
         },
 
-        render: function(){
+        render: function () {
             var data;
-            if (this.serializeData){
+            if (this.serializeData) {
                 data = this.serializeData();
             }
             // use the pre-compiled, cached template function
@@ -224,14 +286,14 @@
             this._isRendered = true;
 
             // Call the `onRender` method if it exists
-            if (this.onRender){
+            if (this.onRender) {
                 this.onRender();
             }
 
             return this;
         },
         // called by ViewMixin destroy
-        _removeChildren: function() {
+        _removeChildren: function () {
             this.removeRegions && this.removeRegions();
         }
     });
@@ -244,10 +306,10 @@
      * @extends ViewStructurePlugin.BaseView
      */
     ViewStructurePlugin.CollectionView = ViewStructurePlugin.BaseView.extend(/**@lends ViewStructurePlugin.BaseView#*/{
-        serializeData: function(){
+        serializeData: function () {
             var data;
 
-            if (this.collection){
+            if (this.collection) {
                 data = {items: this.collection.toJSON()};
             }
 
@@ -262,7 +324,7 @@
      */
     ViewStructurePlugin.CollectionModelView = ViewStructurePlugin.BaseView.extend(/**@lends ViewStructurePlugin.BaseView#*/{
 
-        constructor: function(options){
+        constructor: function (options) {
             ViewStructurePlugin.BaseView.call(this, options);
 
             // set up storage for views
@@ -277,11 +339,11 @@
         // each model. this method can be overridden
         // to return a different view type based on
         // attributes of the model passed in
-        getModelView: function(model){
+        getModelView: function (model) {
             return this.modelView;
         },
         // event handler for model added to collection
-        modelAdded: function(model){
+        modelAdded: function (model) {
             var view = this.renderModel(model);
             var collectionIdx = this.collection.indexOf(model);
             var childEl;
@@ -296,20 +358,24 @@
         },
 
         // handle removing an individual model
-        modelRemoved: function(model){
+        modelRemoved: function (model) {
             // guard clause to make sure we have a model
-            if (!model){ return; }
+            if (!model) {
+                return;
+            }
 
             // guard clause to make sure we have a view
             var view = this.children[model.cid];
-            if (!view){ return; }
+            if (!view) {
+                return;
+            }
 
             this.closeChildView(view);
             this.trigger('modelRemoved', view);
         },
 
         // get child view by model
-        getChildViewByModel: function(model){
+        getChildViewByModel: function (model) {
             return this.children[model.cid];
         },
 
@@ -359,8 +425,10 @@
         },
 
         // a method to close an individual view
-        closeChildView: function(view){
-            if (!view){ return; }
+        closeChildView: function (view) {
+            if (!view) {
+                return;
+            }
 
             // remove the view, if the method is there
             // if (_.isFunction(view.remove)){
@@ -373,15 +441,15 @@
         },
 
         // close and remove all children
-        closeChildren: function(){
+        closeChildren: function () {
             var children = this.children || {};
-            _.each(children, function(child){
+            _.each(children, function (child) {
                 this.closeChildView(child);
             }, this);
         },
 
         // render a single model
-        renderModel: function(model){
+        renderModel: function (model) {
             var ViewType = this.getModelView(model);
             var view = new ViewType({model: model});
 
@@ -393,14 +461,14 @@
         },
 
         // render the entire collection
-        render: function(){
+        render: function () {
             var html = [];
 
             this.closeChildren();
 
             // render a model view for each model
             // and push the results
-            this.collection.each(function(model){
+            this.collection.each(function (model) {
                 var view = this.renderModel(model);
                 html.push(view.$el);
             }, this);
@@ -414,7 +482,7 @@
         },
         // override remove and have it
         // close all the children
-        remove: function(){
+        remove: function () {
             ViewStructurePlugin.BaseView.prototype.remove.call(this);
             this.closeChildren();
         }
@@ -428,10 +496,10 @@
      */
     ViewStructurePlugin.ModelView = ViewStructurePlugin.BaseView.extend(/**@lends ViewStructurePlugin.BaseView#*/{
 
-        serializeData: function(){
+        serializeData: function () {
             var data;
 
-            if (this.model){
+            if (this.model) {
                 data = this.model.toJSON();
             }
 
@@ -452,7 +520,7 @@
      */
     ViewStructurePlugin.Layout = ViewStructurePlugin.ModelView.extend(/**@lends ViewStructurePlugin.ModelView#*/{
 
-        render: function(){
+        render: function () {
             // close the old regions, if any exist
             this.removeRegions();
 
@@ -465,7 +533,7 @@
             return result;
         },
 
-        _configureRegions: function(){
+        _configureRegions: function () {
             this.regions = this.regions || {};
             this._regions = {};
 
@@ -490,12 +558,12 @@
             //
 
             // Call the `onRegions` method if it exists
-            if (this.onRegionsConf){
+            if (this.onRegionsConf) {
                 this.onRegionsConf();
             }
         },
 
-        addRegions: function (regionDefinitions){
+        addRegions: function (regionDefinitions) {
             var _this = this;
             //return when nothing to add
             if (_.isEmpty(regionDefinitions)) {
@@ -506,7 +574,7 @@
                 regions[name] = _this._createRegion(selector);
                 _this._addRegion(regions[name], name);
                 return regions;
-            },{});
+            }, {});
         },
         _createRegion: function (selector) {
             //pre-select the DOM element
@@ -515,9 +583,9 @@
             // create the region
             return new Region({el: el});
         },
-        _addRegion: function(region, name) {
+        _addRegion: function (region, name) {
             // Call the `onBeforeAddRegion` method if it exists
-            if (this.onBeforeAddRegion){
+            if (this.onBeforeAddRegion) {
                 this.onBeforeAddRegion(name, region);
             }
 
@@ -527,40 +595,40 @@
             this._regions[name] = region;
 
             // Call the `onAfterAddRegion` method if it exists
-            if (this.onAfterAddRegion){
+            if (this.onAfterAddRegion) {
                 this.onAfterAddRegion(name, region);
             }
 
         },
         //Remove region
-        removeRegion: function(name){
+        removeRegion: function (name) {
             var region = this._regions[name];
 
             this._removeRegion(region, name);
 
             return region;
         },
-        _removeRegion: function(region, name){
+        _removeRegion: function (region, name) {
             // Call the `onBeforeRemoveRegion` method if it exists
-            if (this.onBeforeRemoveRegion){
+            if (this.onBeforeRemoveRegion) {
                 this.onBeforeRemoveRegion(name, region);
             }
 
             region.destroy();
 
             // Call the `onAfterRemoveRegion` method if it exists
-            if (this.onAfterRemoveRegion){
+            if (this.onAfterRemoveRegion) {
                 this.onAfterRemoveRegion(name, region);
             }
         },
         //Close Layout
-        destroy: function(){
+        destroy: function () {
             // close the Layout before close regions. Avoid reflow.
             ViewStructurePlugin.ModelView.prototype.destroy.call(this);
             // close the regions
             this.removeRegions();
         },
-        removeRegions: function(){
+        removeRegions: function () {
             var regions = this._getRegions();
             _.each(this._regions, _.bind(this._removeRegion, this));
             // _.each(this._regions, function(selector, name){
@@ -607,7 +675,7 @@
 
     ViewStructurePlugin.Scroll = ViewStructurePlugin.CollectionModelView.extend({
 
-        constructor: function(options){
+        constructor: function (options) {
             ViewStructurePlugin.CollectionModelView.call(this, options);
 
             this.listenTo(this.collection, "shift", this._onCollectionChange);
@@ -633,7 +701,7 @@
                 //this.collection.push(new Backbone.Model(pendingEventModel));
 
                 //Make request
-                this.collection.shiftForward && this.collection.shiftForward(function(err){
+                this.collection.shiftForward && this.collection.shiftForward(function (err) {
                     err && _this.trigger('nextEvents', false);
                 });
             }
