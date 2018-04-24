@@ -25,9 +25,8 @@
 
         view.stopListening();
 
-        view._isAttached = false;
-
         view._isDestroyed = true;
+        view._isRendered = false;
 
     };
 
@@ -49,10 +48,14 @@
             },
             // A method to close the current view
             closeView: function (view) {
-                view && destroyView(view);
-                // if (view && view.remove) {
-                //     view.remove();
-                // }
+                if (!view) return;
+                view.off("destroy");
+                if (view._isDestroyed) {
+                    return view;
+                }
+                destroyView(view);
+
+                delete this.currentView;
             },
             // A method to render and show a new view
             openView: function (view) {
@@ -73,16 +76,30 @@
                 this.closeView(this.currentView);
                 this.currentView = view;
                 this.openView(view);
+                this._isDestroyed = false;
+                view.on("destroy", this.closeView, this);
                 // run the onShow method if it is found
                 if (_.isFunction(view.onShow)) {
                     view.onShow();
                 }
             },
+            reset: function () {
+                delete this.$el;
+                return this;
+            },
             destroy: function(){
                 if (this._isDestroyed) { return this; }
 
+                this.reset();
+                this.closeView(this.currentView);
+                //
+                // if (this._name) {
+                //     this._parentView._removeReferences(this._name);
+                // }
+                delete this._parentView;
+                delete this._name;
+
                 this._isDestroyed = true;
-                this.stopListening();
 
                 return this;
             }
@@ -109,6 +126,10 @@
         // Handle destroying the view and its children.
         destroy: function() {
             if (this._isDestroyed) { return this; }
+            // Call the `onBeforeDestroy` method if it exists
+            if (this.onBeforeDestroy){
+                this.onBeforeDestroy(this);
+            }
             //const shouldTriggerDetach = this._isAttached && !this._shouldDisableEvents;
 
             // this.triggerMethod('before:destroy', this, arguments);
@@ -132,6 +153,10 @@
 
             this._isDestroyed = true;
             this._isRendered = false;
+
+            if (this.onDestroy){
+                this.onDestroy(this);
+            }
 
             // Destroy behaviors after _isDestroyed flag
             //this._destroyBehaviors(...args);
@@ -196,6 +221,7 @@
             // use the pre-compiled, cached template function
             var renderedHtml = this.templateCache(data);
             this.$el.html(renderedHtml);
+            this._isRendered = true;
 
             // Call the `onRender` method if it exists
             if (this.onRender){
@@ -206,7 +232,7 @@
         },
         // called by ViewMixin destroy
         _removeChildren: function() {
-            this.closeRegions && this.closeRegions();
+            this.removeRegions && this.removeRegions();
         }
     });
 
@@ -295,9 +321,37 @@
 
         //find by Index.
         findByIndex: function (index) {
-            var val = _.values(this.children);
-            return _.values(this.children)[index];
+            if (this.collection.length > 0) {
+                var model = this.collection.at(index);
+                return this.children[model.cid];
+            }
+            //return _.values(this.children)[index];
         },
+        // Internal method. This decrements or increments the indices of views after the added/removed
+        // view to keep in sync with the collection.
+        // _updateIndices(views, increment) {
+        //     // if (!this.sort) {
+        //     //     return;
+        //     // }
+        //
+        //     if (!increment) {
+        //         _.each(_.sortBy(this.children._views, '_index'), function (view, index) {
+        //             view._index = index;
+        //         });
+        //         return;
+        //     }
+        //
+        //     var view = _.isArray(views) ? _.max(views, '_index') : views;
+        //
+        //     if (_.isObject(view)) {
+        //         // update the indexes of views after this one
+        //         _.each(this.children._views, function (laterView){
+        //             if (laterView._index >= view._index) {
+        //                 laterView._index += 1;
+        //             }
+        //         });
+        //     }
+        // },
         //get last child view
         getLastChildView: function () {
             var view = this.$el.find("> :last-child");
@@ -400,33 +454,40 @@
 
         render: function(){
             // close the old regions, if any exist
-            this.closeRegions();
+            this.removeRegions();
 
             // call the original
             var result = ViewStructurePlugin.ModelView.prototype.render.call(this);
 
             // call to process the regions
-            this.configureRegions();
+            this._configureRegions();
 
             return result;
         },
 
-        configureRegions: function(){
+        _configureRegions: function(){
+            this.regions = this.regions || {};
+            this._regions = {};
+
+            this.addRegions(_.result(this, 'regions'));
+
+
             // get the definitions
-            var regionDefinitions = this.regions || {};
-
-            // loop through them
-            _.each(regionDefinitions, function(selector, name){
-
-                // pre-select the DOM element
-                var el = this.$(selector);
-
-                // create the region, assign to the layout
-                this[name] = new Region({el: el});
-
-                // save parent view
-                this[name][_parentView] = this;
-            }, this);
+            // var regionDefinitions = this.regions || {};
+            //
+            // // loop through them
+            // _.each(regionDefinitions, function(selector, name){
+            //
+            //     // pre-select the DOM element
+            //     var el = this.$(selector);
+            //
+            //     // create the region, assign to the layout
+            //     this[name] = new Region({el: el});
+            //
+            //     // save parent view
+            //     //this[name][_parentView] = this;
+            // }, this);
+            //
 
             // Call the `onRegions` method if it exists
             if (this.onRegionsConf){
@@ -434,20 +495,113 @@
             }
         },
 
-        close: function(){
-            // close the Layout before close regions. Avoid reflow.
-            ViewStructurePlugin.Layout.prototype.close.call(this);
-            // close the regions
-            this.closeRegions();
+        addRegions: function (regionDefinitions){
+            var _this = this;
+            //return when nothing to add
+            if (_.isEmpty(regionDefinitions)) {
+                return;
+            }
+
+            return _.reduce(regionDefinitions, function (regions, selector, name) {
+                regions[name] = _this._createRegion(selector);
+                _this._addRegion(regions[name], name);
+                return regions;
+            },{});
         },
-        closeRegions: function(){
-            _.each(this.regions, function(selector, name){
-                // grab the region by name, and close it
-                var region = this[name];
-                if (region && region.currentView && _.isFunction(region.currentView.destroy)){
-                    region.currentView.destroy();
-                }
-            }, this);
+        _createRegion: function (selector) {
+            //pre-select the DOM element
+            var el = this.$(selector);
+
+            // create the region
+            return new Region({el: el});
+        },
+        _addRegion: function(region, name) {
+            // Call the `onBeforeAddRegion` method if it exists
+            if (this.onBeforeAddRegion){
+                this.onBeforeAddRegion(name, region);
+            }
+
+            region._parentView = this;
+            region._name = name;
+
+            this._regions[name] = region;
+
+            // Call the `onAfterAddRegion` method if it exists
+            if (this.onAfterAddRegion){
+                this.onAfterAddRegion(name, region);
+            }
+
+        },
+        //Remove region
+        removeRegion: function(name){
+            var region = this._regions[name];
+
+            this._removeRegion(region, name);
+
+            return region;
+        },
+        _removeRegion: function(region, name){
+            // Call the `onBeforeRemoveRegion` method if it exists
+            if (this.onBeforeRemoveRegion){
+                this.onBeforeRemoveRegion(name, region);
+            }
+
+            region.destroy();
+
+            // Call the `onAfterRemoveRegion` method if it exists
+            if (this.onAfterRemoveRegion){
+                this.onAfterRemoveRegion(name, region);
+            }
+        },
+        //Close Layout
+        destroy: function(){
+            // close the Layout before close regions. Avoid reflow.
+            ViewStructurePlugin.ModelView.prototype.destroy.call(this);
+            // close the regions
+            this.removeRegions();
+        },
+        removeRegions: function(){
+            var regions = this._getRegions();
+            _.each(this._regions, _.bind(this._removeRegion, this));
+            // _.each(this._regions, function(selector, name){
+            //     // grab the region by name, and close it
+            //     var region = this[name];
+            //     if (region && region.currentView && _.isFunction(region.currentView.destroy)){
+            //         region.currentView.destroy();
+            //     }
+            // }, this);
+            return regions;
+        },
+
+        // Checks to see if view contains region
+        hasRegion(name) {
+            return !!this.getRegion(name);
+        },
+
+        // Provides access to region
+        getRegion(name) {
+            if (!this._isRendered) {
+                this.render();
+            }
+            return this._regions[name];
+        },
+
+        // Get all regions
+        _getRegions() {
+            return _.clone(this._regions);
+        },
+
+        getRegions() {
+            if (!this._isRendered) {
+                this.render();
+            }
+            return this._getRegions();
+        },
+
+        // Called in a region's destroy
+        _removeReferences(name) {
+            delete this.regions[name];
+            delete this._regions[name];
         }
     });
 
