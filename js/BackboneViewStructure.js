@@ -355,6 +355,10 @@
             this.listenTo(this.collection, "add", this.modelAdded);
             this.listenTo(this.collection, "remove", this.modelRemoved);
             this.listenTo(this.collection, "reset", this.render);
+
+            if(this.onInitialization){
+                this.onInitialization();
+            }
         },
 
         // a method to get the type of view for
@@ -414,7 +418,7 @@
         findByIndex: function (index) {
             if (this.collection.length > 0) {
                 var model = this.collection.at(index);
-                var child = this.children[model.cid];
+                var child = model && this.children[model.cid];
                 return child && child._view;
             }
             //return _.values(this.children)[index];
@@ -780,39 +784,20 @@
 
             this.on('modelAdded modelRemoved render', this._onCollectionChange);
         },
-        onBeforeRender: function () {
+        onInitialization: function (){
             if (!this.collection) {return;}
-
-            this.layoutCount = this.collection.length + 2;
-            if (this.layoutCount > 6) {
-                this.layoutCount = 6;
-            }
-            // this.focusShift = -parseInt(this.layoutCount / 2) + 1;
-            // this.focusIndex = 0;
 
             this._layoutCount = this.layoutCount;
             var shift = this.shift();
             var model;
             var models = [];
-            var extendedModels = [];
             for (var i = 0; i < this._layoutCount; i++) {
-                model = this.getByCycledIndex(this.focusIndex - shift + i);
+                model = this.getByCycledIndex(this.focusIdx - shift + i);
                 model && models.push(model.toJSON());
             }
             if (models.length > 0) {
-                //this.layoutCount = this.layoutCount + models.length;
-                var newModels = this.collection.toJSON() || [];
-                extendedModels = models.concat(newModels);
-                this.collection.reset(extendedModels);
+                this.collection.reset(models, {silent: true});
             }
-            // this.represent(models);
-            // if (this.items.length) {
-            //     this.items[shift].trigger('focus');
-            //     this.trigger('focus', this.items[shift]);
-            // }
-            // else {
-            //     this.trigger('noFocus');
-            // }
         },
         /**
          * Shift of focused item from middle of list.
@@ -851,7 +836,7 @@
                 var lastModel = this.collection.last();
                 this.collection.pop();
                 this.collection.unshift(lastModel);
-                this.focusIndex++;
+                this.focusIdx++;
             }
         },
         back: function () {
@@ -859,7 +844,7 @@
                 var firstModel = this.collection.first();
                 this.collection.shift();
                 this.collection.push(firstModel);
-                this.focusIndex--;
+                this.focusIdx--;
             }
         },
         _getByCycledIndex: function (idx) {
