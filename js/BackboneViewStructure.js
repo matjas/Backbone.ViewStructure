@@ -1,6 +1,19 @@
 /**
+ * Core of this plugin based on Backbone.Marionette which is under licence:
+ * MIT Licence
+ * Copyright © 2018 Muted Solutions, LLC <derick@mutedsolutions.com>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/**
  * Extended Backbone View with abstract view functionality
- * @module ViewStructurePlug
+ *
+ * Usage examples
+ * https://github.com/matjas/Backbone.ViewStructure
+ *
+ * @module ViewStructure
  * @requires Backbone
  * @version 1.0.0
  */
@@ -10,11 +23,12 @@
     } else if (typeof exports === 'object') {
         module.exports = factory(require('backbone'), require('underscore'), require('jquery'));
     } else {
-        root.Backbone.ViewStructurePlugin = factory(root.Backbone, root._, root.jQuery);
+        root.Backbone.ViewStructure = factory(root.Backbone, root._, root.jQuery);
     }
 }(this, function (Backbone, _, jQuery) {
     'use strict';
 
+    //Common function for destroying view
     var destroyView = function (view) {
         if (view.destroy) {
             view.destroy();
@@ -44,9 +58,7 @@
         _.extend(R.prototype, {
             _isDestroyed: false,
 
-            isDestroyed: function () {
-                return this._isDestroyed;
-            },
+            //this don't destroy view, only detach from DOM node
             _empty(view) {
                 view.off('destroy');
 
@@ -56,12 +68,18 @@
                     this._detachView();
                 }
             },
+
+            //detach from node
             _detachView() {
-                this.detachContents(this.el, this.$el);
-            },
-            detachContents(el, _$el) {
-                //TODO: Create DOM library
                 _$el.contents().detach();
+            },
+            _getView(view) {
+
+                if (view instanceof Backbone.View) {
+                    return view;
+                }
+
+                return new ViewStructure.ModelView();
             },
             // Empties the Region without destroying the view
             closeView: function () {
@@ -75,21 +93,8 @@
 
                 return view;
             },
-            _getView(view) {
-
-                if (view._isDestroyed) {
-                    console.log("View has been already destroyed. Can not be used")
-                }
-
-                if (view instanceof Backbone.View) {
-                    return view;
-                }
-
-                return new ViewStructurePlugin.ModelView();
-            },
             // A method to render and show a new view
             openView: function (view) {
-                //var view = this.currentView;
                 if (!this.ensureEl()) {
                     return;
                 }
@@ -119,13 +124,17 @@
                 }
                 return true;
             },
-            // show a view and close an existing view,
+            // show an existing view,
             // if one is already in this DOM element
             show: function (view) {
-                this.closeView(this.currentView);
+                //destroy current view
+                this.destroyView(this.currentView);
+                //open view
                 this.openView(view);
-                this._isDestroyed = false;
-                view.on("destroy", this.closeView, this);
+
+                view._isDestroyed = false;
+                view.on("destroy", this.destroyView, this);
+
                 // run the onShow method if it is found
                 if (_.isFunction(view.onShow)) {
                     view.onShow();
@@ -133,6 +142,7 @@
             },
             destroyView: function (view) {
                 if (!view) return;
+
                 view.off("destroy");
                 if (view._isDestroyed) {
                     return view;
@@ -141,18 +151,17 @@
 
                 delete this.currentView;
             },
+            //delete element
             reset: function () {
                 delete this.$el;
                 return this;
             },
             destroy: function () {
-                if (this._isDestroyed) {
-                    return this;
-                }
 
                 this.reset();
                 this.destroyView(this.currentView);
-                //
+
+                //TODO:remove references after destroy Layout
                 // if (this._name) {
                 //     this._parentView._removeReferences(this._name);
                 // }
@@ -164,14 +173,14 @@
                 return this;
             }
         });
-        // export the Region type so it can be used
+        // export the Region type
         return R;
     })(Backbone, jQuery);
 
     //Mixins
     var Mixins = {};
 
-    //ViewMixin
+    //ViewMixins
     Mixins.View = {
         _isRendered: false,
 
@@ -180,35 +189,18 @@
         },
         _isDestroyed: false,
 
-        isDestroyed () {
-            return !!this._isDestroyed;
-        },
         // Handle destroying the view and its children.
         destroy: function () {
             if (this._isDestroyed) {
                 return this;
             }
             // Call the `onBeforeDestroy` method if it exists
-            if (this.onBeforeDestroy) {
+            if (_.isFunction(this.onBeforeDestroy)) {
                 this.onBeforeDestroy(this);
             }
-            //const shouldTriggerDetach = this._isAttached && !this._shouldDisableEvents;
-
-            // this.triggerMethod('before:destroy', this, arguments);
-            // if (shouldTriggerDetach) {
-            //     this.triggerMethod('before:detach', this);
-            // }
-
-            // unbind UI elements
-            //this.unbindUIElements();
 
             // remove the view from the DOM
             this._removeElement();
-
-            // if (shouldTriggerDetach) {
-            //     this._isAttached = false;
-            //     this.triggerMethod('detach', this);
-            // }
 
             // remove children after the remove to prevent extra paints
             this._removeChildren();
@@ -216,14 +208,9 @@
             this._isDestroyed = true;
             this._isRendered = false;
 
-            if (this.onDestroy) {
+            if (_.isFunction(this.onDestroy)) {
                 this.onDestroy(this);
             }
-
-            // Destroy behaviors after _isDestroyed flag
-            //this._destroyBehaviors(...args);
-
-            //this.trigger('destroy', this, arguments);
 
             this.stopListening();
 
@@ -232,12 +219,9 @@
         _removeElement(){
             this.$el.off();
             this.$el.remove();
-            //this.Dom.detachEl(this.el, this.$el);
+            this.$el.contents().detach();
         }
     };
-
-    //RegionsMixin
-    Mixins.Regions = {};
 
     //AnimationMixin
     Mixins.Animation = {
@@ -262,32 +246,29 @@
     };
 
     /**
-     * @typedef {jQuery|Zepto} $
-     * @see {@link Backbone.$}
+     * @alias module:ViewStructure
+     * @class ViewStructure
      */
 
-    /**
-     * @alias module:ViewStructurePlugin
-     * @class ViewStructurePlugin
-     */
-
-    var ViewStructurePlugin = {};
+    var ViewStructure = {};
 
     /**
      * @alias module:ViewStructurePlugs
      * @class BaseView
      * @extends Backbone.View
      */
-    ViewStructurePlugin.BaseView = Backbone.View.extend(/**@lends Backbone.View#*/{
+    ViewStructure.BaseView = Backbone.View.extend(/**@lends Backbone.View#*/{
 
         //default template
         template: "<div></div>",
 
+        //Override constructor
         constructor: function (options) {
             Backbone.View.prototype.constructor.apply(this, arguments);
             this.buildTemplateCache();
         },
 
+        //Compile template and store it into cache
         buildTemplateCache: function () {
             var proto = Object.getPrototypeOf(this);
 
@@ -299,35 +280,65 @@
 
         render: function () {
             var data;
-            if (this.serializeData) {
+
+            //serialize data before render. Can be override  by user.
+            if (_.isFunction(this.serializeData)) {
                 data = this.serializeData();
             }
+
+            // Call the `onBeforeRender` method if it exists
+            if (_.isFunction(this.onBeforeRender)) {
+                this.onBeforeRender();
+            }
+
             // use the pre-compiled, cached template function
             var renderedHtml = this.templateCache(data);
             this.$el.html(renderedHtml);
             this._isRendered = true;
 
             // Call the `onRender` method if it exists
-            if (this.onRender) {
+            if (_.isFunction(this.onRender)) {
                 this.onRender();
             }
+            this.trigger("render");
 
             return this;
         },
+
         // called by ViewMixin destroy
         _removeChildren: function () {
             this.removeRegions && this.removeRegions();
         }
     });
 
-    _.extend(ViewStructurePlugin.BaseView.prototype, Mixins.View, Mixins.Regions);
+    _.extend(ViewStructure.BaseView.prototype, Mixins.View);
 
     /**
-     * @alias module:ViewStructurePlugin
-     * @class CollectionView
-     * @extends ViewStructurePlugin.BaseView
+     * Display view based on model
+     * @alias module:ViewStructure
+     * @class ModelView
+     * @extends ViewStructure.BaseView
      */
-    ViewStructurePlugin.CollectionView = ViewStructurePlugin.BaseView.extend(/**@lends ViewStructurePlugin.BaseView#*/{
+    ViewStructure.ModelView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
+
+        serializeData: function () {
+            var data;
+
+            if (this.model) {
+                data = this.model.toJSON();
+            }
+
+            return data;
+        }
+    });
+
+    /**
+     * Create view from List. Items doesn't come from collection.
+     * @alias module:ViewStructure
+     * @class CollectionView
+     * @extends ViewStructure.BaseView
+     */
+    ViewStructure.CollectionView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
         serializeData: function () {
             var data;
 
@@ -340,14 +351,15 @@
     });
 
     /**
-     * @alias module:ViewStructurePlugin
+     * Collection of Model Views. Each item based on ModelView
+     * @alias module:ViewStructure
      * @class CollectionModelView
-     * @extends ViewStructurePlugin.BaseView
+     * @extends ViewStructure.BaseView
      */
-    ViewStructurePlugin.CollectionModelView = ViewStructurePlugin.BaseView.extend(/**@lends ViewStructurePlugin.BaseView#*/{
+    ViewStructure.CollectionModelView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
 
         constructor: function (options) {
-            ViewStructurePlugin.BaseView.call(this, options);
+            ViewStructure.BaseView.call(this, options);
 
             // set up storage for views
             this.children = {};
@@ -356,141 +368,12 @@
             this.listenTo(this.collection, "remove", this.modelRemoved);
             this.listenTo(this.collection, "reset", this.render);
 
-            if(this.onInitialization){
+            //Fire directly after initialization.
+            if(_.isFunction(this.onInitialization)){
                 this.onInitialization();
             }
         },
 
-        // a method to get the type of view for
-        // each model. this method can be overridden
-        // to return a different view type based on
-        // attributes of the model passed in
-        getModelView: function (model) {
-            return this.modelView;
-        },
-        // event handler for model added to collection
-        modelAdded: function (model) {
-            var collectionIdx = this.collection.indexOf(model);
-
-            var view = this._renderModel(model, collectionIdx);
-            var childEl;
-
-            if (collectionIdx <= 0) {
-                this.$el.prepend(view.$el);
-            } else {
-                childEl = this.getNthChildView(collectionIdx);
-                childEl ? view.$el.insertAfter(childEl) : this.$el.append(view.$el);
-            }
-            this.trigger('modelAdded', view);
-        },
-
-        // handle removing an individual model
-        modelRemoved: function (model) {
-            // guard clause to make sure we have a model
-            if (!model) {
-                return;
-            }
-
-            // guard clause to make sure we have a view
-            var child = this.children[model.cid];
-            if (!child) {
-                return;
-            }
-
-            this.closeChildView(child);
-            this._updateIndex();
-            this.trigger('modelRemoved', child._view);
-        },
-
-        // get child view by model
-        getChildViewByModel: function (model) {
-            var child = this.children[model.cid];
-            return child && child._view;
-        },
-
-        // get child view by index
-        getNthChildView: function (idx) {
-            var childEl = this.$el.find("> :nth-child(" + idx + ")");
-            return childEl.length > 0 ? childEl[0] : undefined;
-        },
-
-        //find by Index.
-        findByIndex: function (index) {
-            if (this.collection.length > 0) {
-                var model = this.collection.at(index);
-                var child = model && this.children[model.cid];
-                return child && child._view;
-            }
-            //return _.values(this.children)[index];
-        },
-        // Internal method. This decrements or increments the indices of views after the added/removed
-        // view to keep in sync with the collection.
-        // _updateIndices(views, increment) {
-        //     // if (!this.sort) {
-        //     //     return;
-        //     // }
-        //
-        //     if (!increment) {
-        //         _.each(_.sortBy(this.children._views, '_index'), function (view, index) {
-        //             view._index = index;
-        //         });
-        //         return;
-        //     }
-        //
-        //     var view = _.isArray(views) ? _.max(views, '_index') : views;
-        //
-        //     if (_.isObject(view)) {
-        //         // update the indexes of views after this one
-        //         _.each(this.children._views, function (laterView){
-        //             if (laterView._index >= view._index) {
-        //                 laterView._index += 1;
-        //             }
-        //         });
-        //     }
-        // },
-        //get last child view
-        getLastChildView: function () {
-            var view = this.$el.find("> :last-child");
-            return view.length > 0 ? view[0] : undefined;
-        },
-
-        // a method to close an individual view
-        closeChildView: function (child) {
-            if (!child) {
-                return;
-            }
-
-            // remove the view, if the method is there
-            // if (_.isFunction(view.remove)){
-            //     view.remove();
-            // }
-            destroyView(child._view);
-
-            // remove it from the children
-            delete this.children[child._view.model.cid];
-        },
-
-        // close and remove all children
-        closeChildren: function () {
-            var children = this.children || {};
-            _.each(children, function (child) {
-                this.closeChildView(child);
-            }, this);
-        },
-
-        // render a single model
-        _renderModel: function (model, index) {
-            var ViewType = this.getModelView(model);
-            var view = new ViewType({model: model});
-
-            // store the child view for this model
-            this.children[model.cid] = this._createChild(view, index);
-
-            this._updateIndex();
-
-            view.render();
-            return view;
-        },
         //Add child into children object
         _createChild: function (view, index) {
             return {
@@ -521,17 +404,128 @@
             // with the rendered results
             this.$el.html(html);
         },
+
+        // a method to get the type of view for
+        // each model. this method can be overridden
+        // to return a different view type based on
+        // attributes of the model passed in
+        getModelView: function (model) {
+            return this.modelView;
+        },
+
+        // event handler for model added to collection
+        modelAdded: function (model) {
+            var collectionIdx = this.collection.indexOf(model);
+
+            var view = this._renderModel(model, collectionIdx);
+            var childEl;
+
+            //append item at the right place. (like collection order)
+            if (collectionIdx <= 0) {
+                this.$el.prepend(view.$el);
+            } else {
+                childEl = this.getNthChildView(collectionIdx);
+                childEl ? view.$el.insertAfter(childEl) : this.$el.append(view.$el);
+            }
+            this.trigger('modelAdded', view);
+        },
+
+        // handle removing an individual model
+        modelRemoved: function (model) {
+            // guard clause to make sure we have a model
+            if (!model) {
+                return;
+            }
+
+            // guard clause to make sure we have a view
+            var child = this.children[model.cid];
+            if (!child) {
+                return;
+            }
+
+            this.closeChildView(child);
+            this._updateIndex();
+            this.trigger('modelRemoved', child._view);
+        },
+
+        // get child view by index
+        //TODO: standarise this
+        getNthChildView: function (idx) {
+            var childEl = this.$el.find("> :nth-child(" + idx + ")");
+            return childEl.length > 0 ? childEl[0] : undefined;
+        },
+
+        //get last child view
+        //TODO: standarise this
+        getLastChildView: function () {
+            var view = this.$el.find("> :last-child");
+            return view.length > 0 ? view[0] : undefined;
+        },
+
+        // get child view by model
+        getChildViewByModel: function (model) {
+            var child = this.children[model.cid];
+            return child && child._view;
+        },
+
+        //find by Index and return view
+        findByIndex: function (index) {
+            if (this.collection.length > 0) {
+                var model = this.collection.at(index);
+                var child = model && this.children[model.cid];
+                return child && child._view;
+            }
+        },
+
+        // a method to close an individual view
+        closeChildView: function (child) {
+            if (!child) {
+                return;
+            }
+
+            // remove the view, if the method is there
+            if (_.isFunction(child._view.remove)){
+                child._view.remove();
+            }
+            destroyView(child._view);
+
+            // remove it from the children
+            delete this.children[child._view.model.cid];
+        },
+
+        // close and remove all children
+        closeChildren: function () {
+            var children = this.children || {};
+            _.each(children, function (child) {
+                this.closeChildView(child);
+            }, this);
+        },
+
+        // render a single model
+        _renderModel: function (model, index) {
+            var ViewType = this.getModelView(model);
+            var view = new ViewType({model: model});
+
+            // store the child view for this model
+            this.children[model.cid] = this._createChild(view, index);
+
+            this._updateIndex();
+
+            view.render();
+            return view;
+        },
         // render the entire collection
         render: function () {
             if (this._isDestroyed) {return this;}
+
             // Call the `onBeforeRender` method if it exists
-            if (this.onBeforeRender) {
+            if (_.isFunction(this.onBeforeRender)) {
                 this.onBeforeRender();
             }
             this._renderChildren();
             this._isRendered = true;
 
-            if (this.onRender) {
+            if (_.isFunction(this.onRender)) {
                 this.onRender();
             }
 
@@ -542,55 +536,19 @@
         // override remove and have it
         // close all the children
         remove: function () {
-            ViewStructurePlugin.BaseView.prototype.remove.call(this);
+            ViewStructure.BaseView.prototype.remove.call(this);
             this.closeChildren();
         }
 
     });
 
     /**
-     * @alias module:ViewStructurePlugin
-     * @class ModelView
-     * @extends ViewStructurePlugin.BaseView
-     */
-    ViewStructurePlugin.ModelView = ViewStructurePlugin.BaseView.extend(/**@lends ViewStructurePlugin.BaseView#*/{
-
-        serializeData: function () {
-            var data;
-
-            if (this.model) {
-                data = this.model.toJSON();
-            }
-
-            return data;
-        }
-        // _prepareModel: function () {
-        //     if (!this.model instanceof Backbone.Model && _.isObject(this.model)) {
-        //         this.model = new Backbone.Model(this.model);
-        //     }
-        // }
-
-    });
-
-    /**
-     * @alias module:ViewStructurePlugin
+     * View allow create regions and place in regions customized views
+     * @alias module:ViewStructure
      * @class Layout
-     * @extends ViewStructurePlugin.ModelView
+     * @extends ViewStructure.ModelView
      */
-    ViewStructurePlugin.Layout = ViewStructurePlugin.ModelView.extend(/**@lends ViewStructurePlugin.ModelView#*/{
-
-        render: function () {
-            // close the old regions, if any exist
-            this.removeRegions();
-
-            // call the original
-            var result = ViewStructurePlugin.ModelView.prototype.render.call(this);
-
-            // call to process the regions
-            this._configureRegions();
-
-            return result;
-        },
+    ViewStructure.Layout = ViewStructure.ModelView.extend(/**@lends ViewStructure.ModelView#*/{
 
         _configureRegions: function () {
             this.regions = this.regions || {};
@@ -598,28 +556,48 @@
 
             this.addRegions(_.result(this, 'regions'));
 
-
-            // get the definitions
-            // var regionDefinitions = this.regions || {};
-            //
-            // // loop through them
-            // _.each(regionDefinitions, function(selector, name){
-            //
-            //     // pre-select the DOM element
-            //     var el = this.$(selector);
-            //
-            //     // create the region, assign to the layout
-            //     this[name] = new Region({el: el});
-            //
-            //     // save parent view
-            //     //this[name][_parentView] = this;
-            // }, this);
-            //
-
             // Call the `onRegions` method if it exists
-            if (this.onRegionsConf) {
+            if (_.isFunction(this.onRegionsConf)) {
                 this.onRegionsConf();
             }
+        },
+
+        _createRegion: function (selector) {
+            //pre-select the DOM element
+            var el = this.$(selector);
+
+            // create the region
+            return new Region({el: el});
+        },
+        _addRegion: function (region, name) {
+            // Call the `onBeforeAddRegion` method if it exists
+            if (_.isFunction(this.onBeforeAddRegion)) {
+                this.onBeforeAddRegion(name, region);
+            }
+
+            region._parentView = this;
+            region._name = name;
+
+            this._regions[name] = region;
+
+            // Call the `onAfterAddRegion` method if it exists
+            if (_.isFunction(this.onAddRegion)) {
+                this.onAddRegion(name, region);
+            }
+
+        },
+
+        render: function () {
+            // close the old regions, if any exist
+            this.removeRegions();
+
+            // call the original
+            var result = ViewStructure.ModelView.prototype.render.call(this);
+
+            // call to process the regions
+            this._configureRegions();
+
+            return result;
         },
 
         addRegions: function (regionDefinitions) {
@@ -635,30 +613,6 @@
                 return regions;
             }, {});
         },
-        _createRegion: function (selector) {
-            //pre-select the DOM element
-            var el = this.$(selector);
-
-            // create the region
-            return new Region({el: el});
-        },
-        _addRegion: function (region, name) {
-            // Call the `onBeforeAddRegion` method if it exists
-            if (this.onBeforeAddRegion) {
-                this.onBeforeAddRegion(name, region);
-            }
-
-            region._parentView = this;
-            region._name = name;
-
-            this._regions[name] = region;
-
-            // Call the `onAfterAddRegion` method if it exists
-            if (this.onAfterAddRegion) {
-                this.onAfterAddRegion(name, region);
-            }
-
-        },
         //Remove region
         removeRegion: function (name) {
             var region = this._regions[name];
@@ -669,34 +623,27 @@
         },
         _removeRegion: function (region, name) {
             // Call the `onBeforeRemoveRegion` method if it exists
-            if (this.onBeforeRemoveRegion) {
+            if (_.isFunction(this.onBeforeRemoveRegion)) {
                 this.onBeforeRemoveRegion(name, region);
             }
 
             region.destroy();
 
             // Call the `onAfterRemoveRegion` method if it exists
-            if (this.onAfterRemoveRegion) {
-                this.onAfterRemoveRegion(name, region);
+            if (_.isFunction(this.onRemoveRegion)) {
+                this.onRemoveRegion(name, region);
             }
         },
         //Close Layout
         destroy: function () {
             // close the Layout before close regions. Avoid reflow.
-            ViewStructurePlugin.ModelView.prototype.destroy.call(this);
+            ViewStructure.ModelView.prototype.destroy.call(this);
             // close the regions
-            this.removeRegions();
+            //this.removeRegions();
         },
         removeRegions: function () {
             var regions = this._getRegions();
             _.each(this._regions, _.bind(this._removeRegion, this));
-            // _.each(this._regions, function(selector, name){
-            //     // grab the region by name, and close it
-            //     var region = this[name];
-            //     if (region && region.currentView && _.isFunction(region.currentView.destroy)){
-            //         region.currentView.destroy();
-            //     }
-            // }, this);
             return regions;
         },
 
@@ -732,10 +679,16 @@
         }
     });
 
-    ViewStructurePlugin.Scroll = ViewStructurePlugin.CollectionModelView.extend({
+    /**
+     * Scroll view.
+     * @alias module:ViewStructure
+     * @class Layout
+     * @extends ViewStructure.ModelView
+     */
+    ViewStructure.Scroll = ViewStructure.CollectionModelView.extend({
 
         constructor: function (options) {
-            ViewStructurePlugin.CollectionModelView.call(this, options);
+            ViewStructure.CollectionModelView.call(this, options);
 
             this.listenTo(this.collection, "shift", this._onCollectionChange);
             this.on('modelAdded modelRemoved render', this._onCollectionChange);
@@ -756,8 +709,6 @@
             var _this = this;
             if (this.collection && this.collection.length === this.nb) {
                 if (this.isValid && !this.isValid(this.collection.last())) return;
-                //Add pending event
-                //this.collection.push(new Backbone.Model(pendingEventModel));
 
                 //Make request
                 this.collection.shiftForward && this.collection.shiftForward(function (err) {
@@ -766,106 +717,169 @@
             }
         },
         back: function () {
+            var _this = this;
             if (this.collection && this.collection.length === this.nb) {
                 if (this.isValid && !this.isValid(this.collection.first())) return;
-                //Add pending event
-                //this.collection.unshift(new Backbone.Model(pendingEventModel));
+
                 this.collection.shiftBack && this.collection.shiftBack(function(err) {
-                    this.trigger('nextEvents', true);
+                    _this.trigger('nextEvents', true);
                 });
             }
         }
     });
 
-    ViewStructurePlugin.Cycle = ViewStructurePlugin.CollectionModelView.extend({
+    // ViewStructure.Cycle = ViewStructure.CollectionModelView.extend({
+    //
+    //     constructor: function (options) {
+    //         ViewStructure.CollectionModelView.call(this, options);
+    //
+    //         this.on('modelAdded modelRemoved render', this._onCollectionChange);
+    //     },
+    //     onInitialization: function (){
+    //         if (!this.collection) {return;}
+    //
+    //         this._layoutCount = this.layoutCount;
+    //         var shift = this.shift();
+    //         var model;
+    //         var models = [];
+    //         for (var i = 0; i < this._layoutCount; i++) {
+    //             model = this.getByCycledIndex(this.focusIdx - shift + i);
+    //             model && models.push(model.toJSON());
+    //         }
+    //         if (models.length > 0) {
+    //             this.collection.set(models);
+    //         }
+    //     },
+    //     /**
+    //      * Shift of focused item from middle of list.
+    //      */
+    //     focusShift: undefined,
+    //     /**
+    //      * Number of item displayed in layout
+    //      */
+    //     layoutCount: 1,
+    //     /**
+    //      * Focus index
+    //      */
+    //     focusIdx: 1,
+    //     /**
+    //      * Enables animation stop in case when scroller moves faster then animation
+    //      */
+    //     breakAnimation: false,
+    //
+    //     _onCollectionChange: function () {
+    //         this.trigger("focus", this._getFocusedChild(this.focusIdx));
+    //     },
+    //     _getFocusedChild: function (index) {
+    //         return this.findByIndex(index);
+    //     },
+    //     getFocusedView: function () {
+    //         return this._getFocusedChild(this.focusIdx);
+    //     },
+    //     //get focused model
+    //     focused: function () {
+    //         var view = this._getFocusedChild(this.focusIdx);
+    //         return view.model;
+    //     },
+    //     forward: function () {
+    //         var _this = this;
+    //         if (this.collection && this.collection.length > 1) {
+    //             var lastModel = this.collection.last();
+    //             this.collection.pop();
+    //             this.collection.unshift(lastModel);
+    //             this.focusIdx++;
+    //         }
+    //     },
+    //     back: function () {
+    //         if (this.collection && this.collection.length > 1) {
+    //             var firstModel = this.collection.first();
+    //             this.collection.shift();
+    //             this.collection.push(firstModel);
+    //             this.focusIdx--;
+    //         }
+    //     },
+    //     _getByCycledIndex: function (idx) {
+    //         idx = idx % this.collection.length;
+    //         if (idx < 0) {
+    //             idx += this.collection.length;
+    //         }
+    //         return this.collection.at(idx);
+    //     },
+    //     getByCycledIndex: function (idx) {
+    //         return this._getByCycledIndex(idx);
+    //     },
+    //     shift: function () {
+    //         if (this.focusShift !== undefined) {
+    //             return parseInt(this._layoutCount / 2 + this.focusShift);
+    //         }
+    //         return parseInt(this._layoutCount / 2);
+    //
+    //     }
+    // });
+    // _.extend(ViewStructure.Cycle.prototype, Mixins.Animation);
 
-        constructor: function (options) {
-            ViewStructurePlugin.CollectionModelView.call(this, options);
+    // ViewStructure.ScrollArea = ViewStructure.ModelView.extend({
+    //     step: 20,
+    //     onBeforeRender: function() {
+    //         this.$el.html('<div style="overflow: hidden"><%- content %></div>');
+    //         this.offset = 0;
+    //     },
+    //     // render: function () {
+    //     //     this.$el.html('<div style="overflow: hidden">' + this.contentRender() + '</div>');
+    //     //     this.offset = 0;
+    //     //     this.trigger("render");
+    //     //
+    //     //     return this;
+    //     // },
+    //     // onRender: function () {
+    //     //     this.offset = 0;
+    //     // },
+    //     size: function (customHeight) {
+    //         if (customHeight === undefined) {
+    //             return this.$el.height();
+    //         }
+    //         this.$el.css("height", customHeight);
+    //     },
+    //     contentSize: function () {
+    //         return this.$el.children().height();
+    //     },
+    //     shift: function (x) {
+    //         this.offset = x;
+    //         this.$el.children().css('-webkit-transform', 'translateY(' + (-x) + 'px)');
+    //     },
+    //     // contentRender: function () {
+    //     //     return (this.model && _.escape(JSON.stringify(this.model.toJSON()))) || '';
+    //     // },
+    //     forward: function () {
+    //         var shift = this.offset + this.step;
+    //         var size = this.size();
+    //         var contentSize = this.contentSize();
+    //         if (contentSize > size) {
+    //             if (size + shift > contentSize) {
+    //                 shift = contentSize - size;
+    //             }
+    //             this.shift(shift);
+    //         }
+    //     },
+    //     back: function () {
+    //         if (this.offset === 0) {
+    //             return true;
+    //         }
+    //         var shift = this.offset - this.step;
+    //         if (shift < 0) {
+    //             shift = 0;
+    //         }
+    //         this.shift(shift);
+    //
+    //         return false;
+    //     },
+    //     reset: function() {
+    //         this.shift(0);
+    //     },
+    //     isScrollNeeded: function() {
+    //         return this.contentSize() > this.size();
+    //     }
+    // });
 
-            this.on('modelAdded modelRemoved render', this._onCollectionChange);
-        },
-        onInitialization: function (){
-            if (!this.collection) {return;}
-
-            this._layoutCount = this.layoutCount;
-            var shift = this.shift();
-            var model;
-            var models = [];
-            for (var i = 0; i < this._layoutCount; i++) {
-                model = this.getByCycledIndex(this.focusIdx - shift + i);
-                model && models.push(model.toJSON());
-            }
-            if (models.length > 0) {
-                this.collection.reset(models, {silent: true});
-            }
-        },
-        /**
-         * Shift of focused item from middle of list.
-         */
-        focusShift: undefined,
-        /**
-         * Number of item displayed in layout
-         */
-        layoutCount: 1,
-        /**
-         * Focus index
-         */
-        focusIdx: 1,
-        /**
-         * Enables animation stop in case when scroller moves faster then animation
-         */
-        breakAnimation: false,
-
-        _onCollectionChange: function () {
-            this.trigger("focus", this._getFocusedChild(this.focusIdx));
-        },
-        _getFocusedChild: function (index) {
-            return this.findByIndex(index);
-        },
-        getFocusedView: function () {
-            return this._getFocusedChild(this.focusIdx);
-        },
-        //get focused model
-        focused: function () {
-            var view = this._getFocusedChild(this.focusIdx);
-            return view.model;
-        },
-        forward: function () {
-            var _this = this;
-            if (this.collection && this.collection.length > 1) {
-                var lastModel = this.collection.last();
-                this.collection.pop();
-                this.collection.unshift(lastModel);
-                this.focusIdx++;
-            }
-        },
-        back: function () {
-            if (this.collection && this.collection.length > 1) {
-                var firstModel = this.collection.first();
-                this.collection.shift();
-                this.collection.push(firstModel);
-                this.focusIdx--;
-            }
-        },
-        _getByCycledIndex: function (idx) {
-            idx = idx % this.collection.length;
-            if (idx < 0) {
-                idx += this.collection.length;
-            }
-            return this.collection.at(idx);
-        },
-        getByCycledIndex: function (idx) {
-            return this._getByCycledIndex(idx);
-        },
-        shift: function () {
-            if (this.focusShift !== undefined) {
-                return parseInt(this._layoutCount / 2 + this.focusShift);
-            }
-            return parseInt(this._layoutCount / 2);
-
-        }
-    });
-    _.extend(ViewStructurePlugin.Cycle.prototype, Mixins.Animation);
-
-    return ViewStructurePlugin;
+    return ViewStructure;
 }));
