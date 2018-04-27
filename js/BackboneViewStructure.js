@@ -691,13 +691,24 @@
             ViewStructure.CollectionModelView.call(this, options);
 
             this.listenTo(this.collection, "shift", this._onCollectionChange);
-            this.on('modelAdded modelRemoved render', this._onCollectionChange);
+            this.on('modelAdded modelRemoved', this._onCollectionChange);
         },
         //elements number
         nb: 4,
         focusIdx: 1,
+        _toggleFocus: function (focusedChildView){
+            _.each(this.children, function(view){
+                view.focus = false;
+            });
+            focusedChildView.focus = true;
+        },
         _onCollectionChange: function () {
-            this.trigger("focus", this._getFocusedChild(this.focusIdx));
+            var focusedChild = this._getFocusedChild(this.focusIdx);
+            if(focusedChild){
+                this._toggleFocus(focusedChild);
+                this.trigger("focus", focusedChild);
+                focusedChild.trigger('focus');
+            }
         },
         _getFocusedChild: function (index) {
             return this.findByIndex(index);
