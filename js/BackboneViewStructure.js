@@ -307,7 +307,7 @@
 
         // called by ViewMixin destroy
         _removeChildren: function () {
-            this.removeRegions && this.removeRegions();
+            _.isFunction(this.removeRegions) && this.removeRegions();
         }
     });
 
@@ -324,7 +324,7 @@
         serializeData: function () {
             var data;
 
-            if (this.model) {
+            if (this.model instanceof Backbone.Model) {
                 data = this.model.toJSON();
             }
 
@@ -342,7 +342,7 @@
         serializeData: function () {
             var data;
 
-            if (this.collection) {
+            if (this.collection instanceof Backbone.Collection) {
                 data = {items: this.collection.toJSON()};
             }
 
