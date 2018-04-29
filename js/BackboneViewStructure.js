@@ -45,7 +45,7 @@
     };
 
     // Define a re-usable "Region" object
-    var Region = (function () {
+    var Region = (function (Backbone, $, _) {
         // Define the Region constructor function
         // accept an object parameter with an `el`
         // to define the element to manage
@@ -175,7 +175,7 @@
         });
         // export the Region type
         return R;
-    })();
+    })(Backbone, jQuery, _);
 
     //Mixins
     var Mixins = {};
@@ -305,9 +305,12 @@
             return this;
         },
 
-        // called by ViewMixin destroy
-        _removeChildren: function () {
-            _.isFunction(this.removeRegions) && this.removeRegions();
+        remove: function(){
+            this.destroy();
+        },
+
+        _removeChildren: function(){
+            return;
         }
     });
 
@@ -484,9 +487,10 @@
             }
 
             // remove the view, if the method is there
-            if (_.isFunction(child._view.remove)){
-                child._view.remove();
-            }
+            // if (_.isFunction(child._view.remove)){
+            //     child._view.remove();
+            // }
+
             destroyView(child._view);
 
             // remove it from the children
@@ -496,6 +500,9 @@
         // close and remove all children
         closeChildren: function () {
             var children = this.children || {};
+            // if (!this.children.length) {
+            //     return;
+            // }
             _.each(children, function (child) {
                 this.closeChildView(child);
             }, this);
@@ -535,9 +542,14 @@
         },
         // override remove and have it
         // close all the children
-        remove: function () {
-            ViewStructure.BaseView.prototype.remove.call(this);
-            this.closeChildren();
+        // remove: function () {
+        //     ViewStructure.BaseView.prototype.destroy.call(this);
+        //     this.closeChildren();
+        // },
+        // called by ViewMixin destroy
+        _removeChildren: function () {
+            _.isFunction(this.removeRegions) && this.removeRegions();
+            _.isFunction(this.closeChildren) && this.closeChildren();
         }
 
     });
@@ -635,12 +647,12 @@
             }
         },
         //Close Layout
-        destroy: function () {
-            // close the Layout before close regions. Avoid reflow.
-            ViewStructure.ModelView.prototype.destroy.call(this);
-            // close the regions
-            //this.removeRegions();
-        },
+        // destroy: function () {
+        //     // close the Layout before close regions. Avoid reflow.
+        //     ViewStructure.ModelView.prototype.destroy.call(this);
+        //     // close the regions
+        //     //this.removeRegions();
+        // },
         removeRegions: function () {
             var regions = this._getRegions();
             _.each(this._regions, _.bind(this._removeRegion, this));
@@ -676,6 +688,10 @@
         _removeReferences(name) {
             delete this.regions[name];
             delete this._regions[name];
+        },
+        // called by ViewMixin destroy
+        _removeChildren: function () {
+            _.isFunction(this.removeRegions) && this.removeRegions();
         }
     });
 

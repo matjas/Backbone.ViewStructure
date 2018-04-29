@@ -18,10 +18,11 @@ var CollectionModelView = Backbone.View.extend({
     events: {
         'click .addToCollection': 'addToCollection',
         'click .removeFromCollection': 'removeFromCollection',
-        'click .resetCollection': 'resetCollection'
+        'click .resetCollection': 'resetCollection',
+        'click .destroyView': 'destroyView'
     },
     template: _.template(
-        '<h1>Collection Model View</h1>\n<div class="row">\n    <section class="col">\n        <h3>Base usage</h3>\n        <pre>\n            <code>\n               var BookView = ViewStructurePlugin.ModelView.extend({\n                    template: bookTemplate\n                });\n\n                var BooksCollectionModelView = ViewStructurePlugin.CollectionModelView.extend({\n                    modelView: BookView\n                });\n                \n                var collectionModelView = new BooksCollectionModelView ({\n                    collection: this.booksCollection\n                });\n                \n                collectionModelView.render();\n            </code>\n        </pre>\n        <div class="operations">\n            <button class="addToCollection">Add</button>\n            <button class="removeFromCollection">Remove</button>\n            <button class="resetCollection">Reset</button>\n        </div>\n        <div class="collectionModelView"></div>\n    </section>\n</div>'),
+        '<h1>Collection Model View</h1>\n<div class="row">\n    <section class="col">\n        <h3>Base usage</h3>\n        <pre>\n            <code>\n               var BookView = ViewStructurePlugin.ModelView.extend({\n                    template: bookTemplate\n                });\n\n                var BooksCollectionModelView = ViewStructurePlugin.CollectionModelView.extend({\n                    modelView: BookView\n                });\n                \n                var collectionModelView = new BooksCollectionModelView ({\n                    collection: this.booksCollection\n                });\n                \n                collectionModelView.render();\n            </code>\n        </pre>\n        <div class="operations">\n            <button class="addToCollection">Add</button>\n            <button class="removeFromCollection">Remove</button>\n            <button class="resetCollection">Reset</button>\n            <button class="destroyView">Destroy view</button>\n        </div>\n        <div class="collectionModelView"></div>\n    </section>\n</div>'),
     initialize: function () {
         this.booksCollection = new Backbone.Collection(books);
         this.collectionModelView = new BooksCollectionModelView ({
@@ -46,6 +47,9 @@ var CollectionModelView = Backbone.View.extend({
     },
     resetCollection: function () {
         this.booksCollection.reset(books);
+    },
+    destroyView: function () {
+        this.collectionModelView.remove();
     }
 });
 
