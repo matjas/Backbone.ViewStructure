@@ -59,7 +59,7 @@
             _isDestroyed: false,
 
             //this don't destroy view, only detach from DOM node
-            _empty(view) {
+            _empty: function(view) {
                 view.off('destroy');
 
                 delete this.currentView;
@@ -70,10 +70,10 @@
             },
 
             //detach from node
-            _detachView() {
+            _detachView: function() {
                 _$el.contents().detach();
             },
-            _getView(view) {
+            _getView: function(view) {
 
                 if (view instanceof Backbone.View) {
                     return view;
@@ -187,7 +187,7 @@
 
         _isRendered: false,
 
-        isRendered() {
+        isRendered: function() {
             return !!this._isRendered;
         },
         _isDestroyed: false,
@@ -219,7 +219,7 @@
 
             return this;
         },
-        _removeElement(){
+        _removeElement: function(){
             this.$el.off();
             this.$el.remove();
             this.$el.contents().detach();
@@ -265,6 +265,9 @@
         //Override constructor
         constructor: function (options) {
             Backbone.View.prototype.constructor.apply(this, arguments);
+            // this.pendingModel = options.pendingModel ? _clone(options.pendingModel) : {text: 'pending'};
+            // this.noDataModel = options.noDataModel  ? _clone(options.noDataModel) : {text: 'no data'};
+            // this.errorModel = options.errorModel ? _clone(options.errorModel) : {text: 'service unavailable'};
             this.buildTemplateCache();
         },
 
@@ -278,6 +281,26 @@
             proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
         },
 
+        // renderData: function(data) {
+        //     // Call the `onBeforeRender` method if it exists
+        //     if (_.isFunction(this.onBeforeRender)) {
+        //         this.onBeforeRender();
+        //     }
+        //
+        //     // use the pre-compiled, cached template function
+        //     var renderedHtml = this.templateCache(data);
+        //     this.$el.html(renderedHtml);
+        //     this._isRendered = true;
+        //
+        //     // Call the `onRender` method if it exists
+        //     if (_.isFunction(this.onRender)) {
+        //         this.onRender();
+        //     }
+        //     this.trigger("render");
+        //
+        //     return this;
+        // },
+
         render: function () {
             var data;
 
@@ -286,6 +309,7 @@
                 data = this.serializeData();
             }
 
+            //this.renderData(data);
             // Call the `onBeforeRender` method if it exists
             if (_.isFunction(this.onBeforeRender)) {
                 this.onBeforeRender();
@@ -324,6 +348,14 @@
      */
     ViewStructure.ModelView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
 
+        // constructor: function (options) {
+        //     ViewStructure.BaseView.call(this, options);
+        //
+        //     this.listenTo(this.model, "request", this.renderPending);
+        //     //this.listenTo(this.model, "sync", this.onSync);
+        //     this.listenTo(this.model, "error", this.renderError);
+        // },
+
         serializeData: function () {
             var data;
 
@@ -342,6 +374,15 @@
      * @extends ViewStructure.BaseView
      */
     ViewStructure.CollectionView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
+
+        // constructor: function (options) {
+        //     ViewStructure.BaseView.call(this, options);
+        //
+        //     this.listenTo(this.collection, "request", this.renderPending);
+        //     //this.listenTo(this.model, "sync", this.onSync);
+        //     this.listenTo(this.collection, "error", this.renderError);
+        // },
+
         serializeData: function () {
             var data;
 
@@ -363,6 +404,9 @@
 
         constructor: function (options) {
             ViewStructure.BaseView.call(this, options);
+            // this.pendingModel = options.pendingModel ? _clone(options.pendingModel) : [{text: 'pending'}];
+            // this.noDataModel = options.noDataModel  ? _clone(options.noDataModel) : [{text: 'no data'}];
+            // this.errorModel = options.errorModel ? _clone(options.errorModel) : [{text: 'service unavailable'}];
 
             // set up storage for views
             this.children = {};
@@ -370,6 +414,9 @@
             this.listenTo(this.collection, "add", this.modelAdded);
             this.listenTo(this.collection, "remove", this.modelRemoved);
             this.listenTo(this.collection, "reset", this.render);
+            //this.listenTo(this.collection, "request", this.renderPending);
+            // //this.listenTo(this.model, "sync", this.onSync);
+            //this.listenTo(this.collection, "error", this.renderError);
 
             //Fire directly after initialization.
             if(_.isFunction(this.onInitialization)){
@@ -391,7 +438,7 @@
                 child && (child._indexByModel = index);
             }, this);
         },
-        _renderChildren: function (){
+        _renderChildren: function (collection){
             if (this._isRendered) {
                 this.closeChildren();
             }
@@ -525,10 +572,12 @@
         render: function () {
             if (this._isDestroyed) {return this;}
 
+            //this.renderData(this.collection);
             // Call the `onBeforeRender` method if it exists
             if (_.isFunction(this.onBeforeRender)) {
                 this.onBeforeRender();
             }
+
             this._renderChildren();
             this._isRendered = true;
 
@@ -540,6 +589,26 @@
 
             return this;
         },
+        // renderData: function(data) {
+        //     if(!(data instanceof Backbone.Collection)){
+        //         data = _.isArray(data) ? new Backbone.Collection(data) : new Backbone.Collection([data])
+        //     }
+        //     // Call the `onBeforeRender` method if it exists
+        //     if (_.isFunction(this.onBeforeRender)) {
+        //         this.onBeforeRender();
+        //     }
+        //
+        //     this._renderChildren(data);
+        //     this._isRendered = true;
+        //
+        //     if (_.isFunction(this.onRender)) {
+        //         this.onRender();
+        //     }
+        //
+        //     this.trigger('render');
+        //
+        //     return this;
+        // },
         // override remove and have it
         // close all the children
         // remove: function () {
@@ -550,6 +619,18 @@
         _removeChildren: function () {
             _.isFunction(this.removeRegions) && this.removeRegions();
             _.isFunction(this.closeChildren) && this.closeChildren();
+        },
+        _getStateData: function(state){
+            return this[state];
+        },
+        renderError: function(){
+            this.renderData(this._getStateData('errorModel'));
+        },
+        renderNoData: function() {
+            this.renderData(this._getStateData('noDataModel'));
+        },
+        renderPending: function() {
+            this.renderData(this._getStateData('pendingModel'));
         }
 
     });
@@ -660,12 +741,12 @@
         },
 
         // Checks to see if view contains region
-        hasRegion(name) {
+        hasRegion: function(name) {
             return !!this.getRegion(name);
         },
 
         // Provides access to region
-        getRegion(name) {
+        getRegion: function(name) {
             if (!this._isRendered) {
                 this.render();
             }
@@ -673,11 +754,11 @@
         },
 
         // Get all regions
-        _getRegions() {
+        _getRegions: function() {
             return _.clone(this._regions);
         },
 
-        getRegions() {
+        getRegions: function() {
             if (!this._isRendered) {
                 this.render();
             }
@@ -685,7 +766,7 @@
         },
 
         // Called in a region's destroy
-        _removeReferences(name) {
+        _removeReferences: function(name) {
             delete this.regions[name];
             delete this._regions[name];
         },
@@ -755,95 +836,95 @@
         }
     });
 
-    ViewStructure.Cycle = ViewStructure.CollectionModelView.extend({
-
-        constructor: function (options) {
-            ViewStructure.CollectionModelView.call(this, options);
-
-            this.on('modelAdded modelRemoved render', this._onCollectionChange);
-        },
-        onInitialization: function (){
-            if (!this.collection) {return;}
-
-            this._layoutCount = this.layoutCount;
-            var shift = this.shift();
-            var model;
-            var models = [];
-            for (var i = 0; i < this._layoutCount; i++) {
-                model = this.getByCycledIndex(this.focusIdx - shift + i);
-                model && models.push(model.toJSON());
-            }
-            if (models.length > 0) {
-                this.collection.set(models);
-            }
-        },
-        /**
-         * Shift of focused item from middle of list.
-         */
-        focusShift: undefined,
-        /**
-         * Number of item displayed in layout
-         */
-        layoutCount: 1,
-        /**
-         * Focus index
-         */
-        focusIdx: 1,
-        /**
-         * Enables animation stop in case when scroller moves faster then animation
-         */
-        breakAnimation: false,
-
-        _onCollectionChange: function () {
-            this.trigger("focus", this._getFocusedChild(this.focusIdx));
-        },
-        _getFocusedChild: function (index) {
-            return this.findByIndex(index);
-        },
-        getFocusedView: function () {
-            return this._getFocusedChild(this.focusIdx);
-        },
-        //get focused model
-        focused: function () {
-            var view = this._getFocusedChild(this.focusIdx);
-            return view.model;
-        },
-        forward: function () {
-            var _this = this;
-            if (this.collection && this.collection.length > 1) {
-                var lastModel = this.collection.last();
-                this.collection.pop();
-                this.collection.unshift(lastModel);
-                this.focusIdx++;
-            }
-        },
-        back: function () {
-            if (this.collection && this.collection.length > 1) {
-                var firstModel = this.collection.first();
-                this.collection.shift();
-                this.collection.push(firstModel);
-                this.focusIdx--;
-            }
-        },
-        _getByCycledIndex: function (idx) {
-            idx = idx % this.collection.length;
-            if (idx < 0) {
-                idx += this.collection.length;
-            }
-            return this.collection.at(idx);
-        },
-        getByCycledIndex: function (idx) {
-            return this._getByCycledIndex(idx);
-        },
-        shift: function () {
-            if (this.focusShift !== undefined) {
-                return parseInt(this._layoutCount / 2 + this.focusShift);
-            }
-            return parseInt(this._layoutCount / 2);
-
-        }
-    });
-    _.extend(ViewStructure.Cycle.prototype, Mixins.Animation);
+    // ViewStructure.Cycle = ViewStructure.CollectionModelView.extend({
+    //
+    //     constructor: function (options) {
+    //         ViewStructure.CollectionModelView.call(this, options);
+    //
+    //         this.on('modelAdded modelRemoved render', this._onCollectionChange);
+    //     },
+    //     onInitialization: function (){
+    //         if (!this.collection) {return;}
+    //
+    //         this._layoutCount = this.layoutCount;
+    //         var shift = this.shift();
+    //         var model;
+    //         var models = [];
+    //         for (var i = 0; i < this._layoutCount; i++) {
+    //             model = this.getByCycledIndex(this.focusIdx - shift + i);
+    //             model && models.push(model.toJSON());
+    //         }
+    //         if (models.length > 0) {
+    //             this.collection.set(models);
+    //         }
+    //     },
+    //     /**
+    //      * Shift of focused item from middle of list.
+    //      */
+    //     focusShift: undefined,
+    //     /**
+    //      * Number of item displayed in layout
+    //      */
+    //     layoutCount: 1,
+    //     /**
+    //      * Focus index
+    //      */
+    //     focusIdx: 1,
+    //     /**
+    //      * Enables animation stop in case when scroller moves faster then animation
+    //      */
+    //     breakAnimation: false,
+    //
+    //     _onCollectionChange: function () {
+    //         this.trigger("focus", this._getFocusedChild(this.focusIdx));
+    //     },
+    //     _getFocusedChild: function (index) {
+    //         return this.findByIndex(index);
+    //     },
+    //     getFocusedView: function () {
+    //         return this._getFocusedChild(this.focusIdx);
+    //     },
+    //     //get focused model
+    //     focused: function () {
+    //         var view = this._getFocusedChild(this.focusIdx);
+    //         return view.model;
+    //     },
+    //     forward: function () {
+    //         var _this = this;
+    //         if (this.collection && this.collection.length > 1) {
+    //             var lastModel = this.collection.last();
+    //             this.collection.pop();
+    //             this.collection.unshift(lastModel);
+    //             this.focusIdx++;
+    //         }
+    //     },
+    //     back: function () {
+    //         if (this.collection && this.collection.length > 1) {
+    //             var firstModel = this.collection.first();
+    //             this.collection.shift();
+    //             this.collection.push(firstModel);
+    //             this.focusIdx--;
+    //         }
+    //     },
+    //     _getByCycledIndex: function (idx) {
+    //         idx = idx % this.collection.length;
+    //         if (idx < 0) {
+    //             idx += this.collection.length;
+    //         }
+    //         return this.collection.at(idx);
+    //     },
+    //     getByCycledIndex: function (idx) {
+    //         return this._getByCycledIndex(idx);
+    //     },
+    //     shift: function () {
+    //         if (this.focusShift !== undefined) {
+    //             return parseInt(this._layoutCount / 2 + this.focusShift);
+    //         }
+    //         return parseInt(this._layoutCount / 2);
+    //
+    //     }
+    // });
+    // _.extend(ViewStructure.Cycle.prototype, Mixins.Animation);
 
     // ViewStructure.ScrollArea = ViewStructure.ModelView.extend({
     //     step: 20,
