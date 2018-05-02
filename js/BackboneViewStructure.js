@@ -59,20 +59,20 @@
             _isDestroyed: false,
 
             //this don't destroy view, only detach from DOM node
-            _empty: function(view) {
-                view.off('destroy');
-
-                delete this.currentView;
-
-                if (!view._isDestroyed) {
-                    this._detachView();
-                }
-            },
+            // _empty: function(view) {
+            //     view.off('destroy');
+            //
+            //     delete this.currentView;
+            //
+            //     if (!view._isDestroyed) {
+            //         this._detachView();
+            //     }
+            // },
 
             //detach from node
-            _detachView: function() {
-                this.$el.contents().detach();
-            },
+            // _detachView: function() {
+            //     this.$el.contents().detach();
+            // },
             _getView: function(view) {
 
                 if (view instanceof Backbone.View) {
@@ -82,19 +82,19 @@
                 return new ViewStructure.ModelView();
             },
             // Empties the Region without destroying the view
-            closeView: function () {
-                var view = this.currentView;
-
-                if (!view) {
-                    return;
-                }
-
-                this._empty(view);
-
-                return view;
-            },
+            // closeView: function () {
+            //     var view = this.currentView;
+            //
+            //     if (!view) {
+            //         return;
+            //     }
+            //
+            //     this._empty(view);
+            //
+            //     return view;
+            // },
             // A method to render and show a new view
-            openView: function (view) {
+            _openView: function (view) {
                 if (!this.ensureEl()) {
                     return;
                 }
@@ -130,7 +130,7 @@
                 //destroy current view
                 this.destroyView(this.currentView);
                 //open view
-                this.openView(view);
+                this._openView(view);
 
                 view._isDestroyed = false;
                 view.on("destroy", this.destroyView, this);
