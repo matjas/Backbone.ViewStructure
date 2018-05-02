@@ -26,7 +26,7 @@ var CollectionModelView = Backbone.View.extend({
         '<h1>Collection Model View</h1>\n<div class="row">\n    <section class="col">\n        <h3>Base usage</h3>\n        <pre>\n            <code>\n               var BookView = ViewStructurePlugin.ModelView.extend({\n                    template: bookTemplate\n                });\n\n                var BooksCollectionModelView = ViewStructurePlugin.CollectionModelView.extend({\n                    modelView: BookView\n                });\n                \n                var collectionModelView = new BooksCollectionModelView ({\n                    collection: this.booksCollection\n                });\n                \n                collectionModelView.render();\n            </code>\n        </pre>\n        <div class="operations">\n            <button class="addToCollection">Add</button>\n            <button class="removeFromCollection">Remove</button>\n            <button class="resetCollection">Reset</button>\n            <button class="destroyView">Destroy view</button>\n            <button class="createView">Create view</button>\n        </div>\n        <div class="collectionModelView"></div>\n    </section>\n</div>'),
     initialize: function () {
         this.booksCollection = new Backbone.Collection(books);
-        this.createView();
+        this.initView();
         
         this.listenTo(applicationRouter, 'route:collectionModelView', this.render);
     },
@@ -50,10 +50,13 @@ var CollectionModelView = Backbone.View.extend({
     destroyView: function () {
         this.collectionModelView.remove();
     },
-    createView: function() {
+    initView: function () {
         this.collectionModelView = new BooksCollectionModelView ({
             collection: this.booksCollection
         });
+    },
+    createView: function() {
+        this.initView();
         this.render();
     }
 });

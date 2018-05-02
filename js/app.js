@@ -30,6 +30,7 @@ var ApplicationView = Backbone.View.extend({
         'click .collectionView-menu': 'displayCollectionView',
         'click .collectionModelView-menu': 'displayCollectionModelView',
         'click .layoutView-menu': 'displayLayoutView',
+        'click .layoutCollection-menu': 'displayLayoutCollection',
         'click .cycleView-menu': 'displayCycleView'
     },
 
@@ -59,6 +60,10 @@ var ApplicationView = Backbone.View.extend({
 
     displayLayoutView: function() {
         applicationRouter.navigate("layoutView", true);
+    },
+
+    displayLayoutCollection: function() {
+        applicationRouter.navigate("layoutCollection", true);
     },
 
     displayCycleView: function() {

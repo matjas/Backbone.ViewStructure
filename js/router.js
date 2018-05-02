@@ -12,6 +12,7 @@ var ApplicationRouter = Backbone.Router.extend({
         "collectionView": "collectionView",
         "collectionModelView": "collectionModelView",
         "layoutView": "layoutView",
+        "layoutCollection": "layoutCollection",
         "cycleView": "cycleView"
     },
 
@@ -43,6 +44,10 @@ var ApplicationRouter = Backbone.Router.extend({
 
     layoutView: function() {
         this.selectMenu('.layoutView-menu')
+    },
+
+    layoutCollection: function() {
+        this.selectMenu('.layoutCollection-menu')
     },
 
     cycleView: function() {
