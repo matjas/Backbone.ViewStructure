@@ -6,15 +6,6 @@ const layout = require('./templates/layout.html');
 const books = require('../helpers/booksCollection');
 const bookTemplate = require('./templates/book_short.html');
 
-var LayoutView = ViewStructurePlugin.Layout.extend({
-    template: layout,
-    regions: {
-        region1: '.reg1',
-        region2: '.reg2',
-        region3: '.reg3'
-    }
-});
-
 var BookView = ViewStructurePlugin.ModelView.extend({
     template: bookTemplate
 });
@@ -44,15 +35,15 @@ var ModuleView = Backbone.View.extend({
         regions.region3.show(this.region3);
         return this;
     },
-    openRegion2: function() {
-        var regions = this.layoutView.getRegions();
-        regions.region2.openView(this.region2);
-    },
-    closeRegion2: function() {
-        var regions = this.layoutView.getRegions();
-        regions.region2.closeView();
-    },
     initLayout: function () {
+        const LayoutView = ViewStructurePlugin.Layout.extend({
+            template: layout,
+            regions: {
+                region1: '.reg1',
+                region2: '.reg2',
+                region3: '.reg3'
+            }
+        });
         this.layoutView = new LayoutView();
         this.initCollections();
         this.region1 = new BooksCollectionModelView({
@@ -76,6 +67,7 @@ var ModuleView = Backbone.View.extend({
     },
     destroyLayout: function() {
         this.layoutView.remove();
+        this.layoutView = undefined;
     }
 });
 

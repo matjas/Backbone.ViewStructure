@@ -161,10 +161,10 @@
                 this.reset();
                 this.destroyView(this.currentView);
 
-                //TODO:remove references after destroy Layout
-                // if (this._name) {
-                //     this._parentView._removeReferences(this._name);
-                // }
+                //remove references after destroy region
+                if (this._name) {
+                    this._parentView._removeReferences(this._name);
+                }
                 delete this._parentView;
                 delete this._name;
 
