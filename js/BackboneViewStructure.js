@@ -348,13 +348,13 @@
      */
     ViewStructure.ModelView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
 
-        // constructor: function (options) {
-        //     ViewStructure.BaseView.call(this, options);
-        //
-        //     this.listenTo(this.model, "request", this.renderPending);
-        //     //this.listenTo(this.model, "sync", this.onSync);
-        //     this.listenTo(this.model, "error", this.renderError);
-        // },
+        constructor: function (options) {
+            ViewStructure.BaseView.call(this, options);
+
+            this.listenTo(this.model, "request", this.renderPending);
+            this.listenTo(this.model, "sync", this.onSync);
+            this.listenTo(this.model, "error", this.renderError);
+        },
 
         serializeData: function () {
             var data;
@@ -364,6 +364,27 @@
             }
 
             return data;
+        },
+
+        renderPending: function () {
+            if (_.isFunction(this.onPending)) {
+                this.onPending();
+            }
+            console.log('render pending');
+        },
+
+        renderError: function (e) {
+            if (_.isFunction(this.onError)) {
+                this.onError(e);
+            }
+            console.log('render error');
+        },
+
+        onSync: function () {
+            if (_.isFunction(this.onSync)) {
+                this.onSync();
+            }
+            this.render();
         }
     });
 

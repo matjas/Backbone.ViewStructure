@@ -1,30 +1,17 @@
 <div class="book">
     <dl class="row">
         <dt class="col-sm-3">Isbn</dt>
-        <dd class="col-sm-9"><%= isbn %></dd>
+        <dd class="col-sm-9">
+            <% if(typeof(isbn) !== "undefined") { %>
+                <%= isbn %>
+            <% } %>
+        </dd>
 
         <dt class="col-sm-3">Title</dt>
-        <dd class="col-sm-9"><%= title %></dd>
-
-        <dt class="col-sm-3">Subtitle</dt>
-        <dd class="col-sm-9"><%= subtitle %></dd>
-
-        <dt class="col-sm-3 text-truncate">Author</dt>
-        <dd class="col-sm-9"><%= author %></dd>
-
-        <dt class="col-sm-3">Published</dt>
-        <dd class="col-sm-9 published"><%= published %></dd>
-
-        <dt class="col-sm-3">Publisher</dt>
-        <dd class="col-sm-9"><%= publisher %></dd>
-
-        <dt class="col-sm-3">Pages</dt>
-        <dd class="col-sm-9"><%= pages %></dd>
-
-        <dt class="col-sm-3">Description</dt>
-        <dd class="col-sm-9"><%= description %></dd>
-
-        <dt class="col-sm-3">Website</dt>
-        <dd class="col-sm-9"><%= website %></dd>
+        <dd class="col-sm-9">
+            <% if(typeof(title) !== "undefined") { %>
+                <%= title %>
+            <% } %>
+        </dd>
     </dl>
 </div>
