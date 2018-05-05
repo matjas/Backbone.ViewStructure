@@ -50,7 +50,12 @@ module.exports = function (env) {
             publicPath: '/dist/',
             watchContentBase: false,
             hotOnly: true,
-            overlay: true
+            overlay: true,
+            // proxy: {
+            //     "/examples/helpers/*": {
+            //         target: "http://localhost:8080"
+            //     }
+            // }
         },
         plugins: [
             new webpack.NamedModulesPlugin(),
