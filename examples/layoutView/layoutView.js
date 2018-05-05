@@ -7,15 +7,6 @@ const region1 = require('./templates/region1.html');
 const region2 = require('./templates/region2.html');
 const region3 = require('./templates/region3.html');
 
-var LayoutView = ViewStructurePlugin.Layout.extend({
-    template: layout,
-    regions: {
-        region1: '.reg1',
-        region2: '.reg2',
-        region3: '.reg3'
-    }
-});
-
 var Region1View = ViewStructurePlugin.ModelView.extend({
     template: region1
 });
@@ -50,6 +41,14 @@ var ModuleView = Backbone.View.extend({
         return this;
     },
     initLayout: function () {
+        const LayoutView = ViewStructurePlugin.Layout.extend({
+            template: layout,
+            regions: {
+                region1: '.reg1',
+                region2: '.reg2',
+                region3: '.reg3'
+            }
+        });
         this.layoutView = new LayoutView();
         this.region1 = new Region1View();
         this.region2 = new Region2View();
