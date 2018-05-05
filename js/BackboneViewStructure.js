@@ -349,11 +349,22 @@
     ViewStructure.ModelView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
 
         constructor: function (options) {
+            options = options || {};
             ViewStructure.BaseView.call(this, options);
 
-            this.listenTo(this.model, "request", this.renderPending);
-            this.listenTo(this.model, "sync", this.onSync);
-            this.listenTo(this.model, "error", this.renderError);
+            this.pendingModel = options.pendingModel;
+            this.noDataModel = options.noDataModel;
+            this.errorModel = options.errorModel;
+
+            if(options.modelEvents) {
+                this._bindModelEvents(options.modelEvents);
+            }
+        },
+
+        _bindModelEvents: function(events) {
+            _.each(events, function(val, key){
+                this.listenTo(this.model, key, this[val]);
+            }, this);
         },
 
         serializeData: function () {
@@ -366,24 +377,44 @@
             return data;
         },
 
+        _getTemplate: function(template) {
+            var tmpl = template || this.templateCache;
+            if(!tmpl) {
+                return;
+            }
+            return _.isFunction(tmpl) ? tmpl : _.template(tmpl);
+        },
+        
+        _renderState: function (state) {
+            var template = this._getTemplate(this[state + 'Template']);
+            var stateModel = this[state + 'Model'];
+            if(!template || !stateModel) {
+                return;
+            }
+
+            var renderedHtml = template(stateModel);
+            this.$el.html(renderedHtml);
+        },
+
         renderPending: function () {
             if (_.isFunction(this.onPending)) {
                 this.onPending();
             }
-            console.log('render pending');
+            this._renderState('pending');
         },
 
-        renderError: function (e) {
+        renderError: function (m, xhr, e) {
             if (_.isFunction(this.onError)) {
                 this.onError(e);
             }
-            console.log('render error');
+            this._renderState('error');
         },
 
-        onSync: function () {
+        renderSync: function (m, data, e) {
             if (_.isFunction(this.onSync)) {
-                this.onSync();
+                this.onSync(data);
             }
+
             this.render();
         }
     });

@@ -5,12 +5,22 @@
             <% if(typeof(isbn) !== "undefined") { %>
                 <%= isbn %>
             <% } %>
+            <% if(typeof(message) !== "undefined") { %>
+                <%= message %>
+            <% } %>
         </dd>
 
         <dt class="col-sm-3">Title</dt>
         <dd class="col-sm-9">
             <% if(typeof(title) !== "undefined") { %>
                 <%= title %>
+            <% } %>
+        </dd>
+
+        <dt class="col-sm-3">Published</dt>
+        <dd class="col-sm-9 published">
+            <% if(typeof(published) !== "undefined") { %>
+                <%= published %>
             <% } %>
         </dd>
     </dl>
