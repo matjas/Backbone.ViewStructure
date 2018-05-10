@@ -161,10 +161,10 @@
                 this.reset();
                 this.destroyView(this.currentView);
 
-                //remove references after destroy region
-                if (this._name) {
-                    this._parentView._removeReferences(this._name);
-                }
+                //TODO: remove references after destroy region
+                // if (this._name) {
+                //     this._parentView._removeReferences(this._name);
+                // }
                 delete this._parentView;
                 delete this._name;
 
@@ -265,9 +265,7 @@
         //Override constructor
         constructor: function (options) {
             Backbone.View.prototype.constructor.apply(this, arguments);
-            // this.pendingModel = options.pendingModel ? _clone(options.pendingModel) : {text: 'pending'};
-            // this.noDataModel = options.noDataModel  ? _clone(options.noDataModel) : {text: 'no data'};
-            // this.errorModel = options.errorModel ? _clone(options.errorModel) : {text: 'service unavailable'};
+
             this.buildTemplateCache();
         },
 
@@ -280,26 +278,6 @@
             }
             proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
         },
-
-        // renderData: function(data) {
-        //     // Call the `onBeforeRender` method if it exists
-        //     if (_.isFunction(this.onBeforeRender)) {
-        //         this.onBeforeRender();
-        //     }
-        //
-        //     // use the pre-compiled, cached template function
-        //     var renderedHtml = this.templateCache(data);
-        //     this.$el.html(renderedHtml);
-        //     this._isRendered = true;
-        //
-        //     // Call the `onRender` method if it exists
-        //     if (_.isFunction(this.onRender)) {
-        //         this.onRender();
-        //     }
-        //     this.trigger("render");
-        //
-        //     return this;
-        // },
 
         render: function () {
             var data;
@@ -384,7 +362,7 @@
             }
             return _.isFunction(tmpl) ? tmpl : _.template(tmpl);
         },
-        
+
         _renderState: function (state) {
             var template = this._getTemplate(this[state + 'Template']);
             var stateModel = this[state + 'Model'];
@@ -427,14 +405,6 @@
      */
     ViewStructure.CollectionView = ViewStructure.BaseView.extend(/**@lends ViewStructure.BaseView#*/{
 
-        // constructor: function (options) {
-        //     ViewStructure.BaseView.call(this, options);
-        //
-        //     this.listenTo(this.collection, "request", this.renderPending);
-        //     //this.listenTo(this.model, "sync", this.onSync);
-        //     this.listenTo(this.collection, "error", this.renderError);
-        // },
-
         serializeData: function () {
             var data;
 
@@ -456,24 +426,32 @@
 
         constructor: function (options) {
             ViewStructure.BaseView.call(this, options);
-            // this.pendingModel = options.pendingModel ? _clone(options.pendingModel) : [{text: 'pending'}];
-            // this.noDataModel = options.noDataModel  ? _clone(options.noDataModel) : [{text: 'no data'}];
-            // this.errorModel = options.errorModel ? _clone(options.errorModel) : [{text: 'service unavailable'}];
 
             // set up storage for views
             this.children = {};
 
-            this.listenTo(this.collection, "add", this.modelAdded);
-            this.listenTo(this.collection, "remove", this.modelRemoved);
-            this.listenTo(this.collection, "reset", this.render);
-            //this.listenTo(this.collection, "request", this.renderPending);
-            // //this.listenTo(this.model, "sync", this.onSync);
-            //this.listenTo(this.collection, "error", this.renderError);
+            this.once('render', this._initializeEvents);
 
             //Fire directly after initialization.
             if(_.isFunction(this.onInitialization)){
                 this.onInitialization();
             }
+        },
+        _initializeEvents: function () {
+            if(this.collection){
+                this.listenTo(this.collection, "add", this.modelAdded);
+                this.listenTo(this.collection, "remove", this.modelRemoved);
+                this.listenTo(this.collection, "reset", this.render);
+
+                if(this.options.disableCollectionEvents){
+                    this._disableCollectionEvents(this.options.disableCollectionEvents);
+                }
+            }
+        },
+        _disableCollectionEvents: function(events) {
+            _.each(events, function(ev){
+                this.stopListening(this.collection, ev);
+            }, this);
         },
 
         //Add child into children object
@@ -641,32 +619,6 @@
 
             return this;
         },
-        // renderData: function(data) {
-        //     if(!(data instanceof Backbone.Collection)){
-        //         data = _.isArray(data) ? new Backbone.Collection(data) : new Backbone.Collection([data])
-        //     }
-        //     // Call the `onBeforeRender` method if it exists
-        //     if (_.isFunction(this.onBeforeRender)) {
-        //         this.onBeforeRender();
-        //     }
-        //
-        //     this._renderChildren(data);
-        //     this._isRendered = true;
-        //
-        //     if (_.isFunction(this.onRender)) {
-        //         this.onRender();
-        //     }
-        //
-        //     this.trigger('render');
-        //
-        //     return this;
-        // },
-        // override remove and have it
-        // close all the children
-        // remove: function () {
-        //     ViewStructure.BaseView.prototype.destroy.call(this);
-        //     this.closeChildren();
-        // },
         // called by ViewMixin destroy
         _removeChildren: function () {
             _.isFunction(this.removeRegions) && this.removeRegions();
@@ -674,15 +626,6 @@
         },
         _getStateData: function(state){
             return this[state];
-        },
-        renderError: function(){
-            this.renderData(this._getStateData('errorModel'));
-        },
-        renderNoData: function() {
-            this.renderData(this._getStateData('noDataModel'));
-        },
-        renderPending: function() {
-            this.renderData(this._getStateData('pendingModel'));
         }
 
     });
