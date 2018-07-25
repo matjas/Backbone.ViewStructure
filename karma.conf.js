@@ -4,7 +4,14 @@
 module.exports = function(config) {
     config.set({
         basePath: '',
-        frameworks: ['jasmine'],
+        frameworks: ['jasmine', 'sinon-chai'],
+
+        //chai config
+        client: {
+            chai: {
+                includeStack: true
+            }
+        },
 
         files: [
             //{ pattern: 'test-context.js', watched: false },
@@ -13,6 +20,7 @@ module.exports = function(config) {
             {pattern: './node_modules/jquery/dist/jquery.js', included: true},
             {pattern: './node_modules/backbone/backbone.js', included: true},
             {pattern: './node_modules/sinon/pkg/sinon.js', included: true},
+            {pattern: './node_modules/chai/chai.js', included: true},
             {pattern: './js/BackboneViewStructure.js', included: true}
         ],
         // preprocessors: {
@@ -41,7 +49,8 @@ module.exports = function(config) {
         ],
         plugins: [
             require('karma-jasmine'),
-            require('karma-chrome-launcher')
+            require('karma-chrome-launcher'),
+            require('karma-sinon-chai')
         ]
     })
 }
