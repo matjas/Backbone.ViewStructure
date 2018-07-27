@@ -41,11 +41,11 @@ describe('creating ModelView', function () {
     beforeEach(function () {
         this.initializeStub = this.sinon.stub();
 
-        this.ModelView = Backbone.ViewStructure.ModelView.extend({
+        var ModelView = ViewStructure.ModelView.extend({
             initialize: this.initializeStub
         });
 
-        this.modelView = new this.ModelView();
+        this.modelView = new ModelView();
 
         before();
     });
@@ -63,10 +63,10 @@ describe('creating ModelView', function () {
  * Destroy View tests
  */
 
-describe('when using listenTo for the "destroy" event on itself, and destroying the modelView', function () {
+xdescribe('when using listenTo for the "destroy" event on itself, and destroying the modelView', function () {
     beforeEach(function () {
         this.destroyStub = this.sinon.stub();
-        this.modelView = new Backbone.ViewStructure.ModelView();
+        this.modelView = new ViewStructure.ModelView();
         this.modelView.listenTo(this.modelView, 'destroy', this.destroyStub);
         this.modelView.destroy();
     });
@@ -76,9 +76,9 @@ describe('when using listenTo for the "destroy" event on itself, and destroying 
     });
 });
 
-describe('when destroying a modelView', function () {
+xdescribe('when destroying a modelView', function () {
     beforeEach(function () {
-        this.modelView = new Backbone.ViewStructure.ModelView();
+        this.modelView = new ViewStructure.ModelView();
 
         this.sinon.spy(this.modelView, '_removeElement');
         this.sinon.spy(this.modelView, '_removeChildren');
@@ -133,7 +133,7 @@ describe('when destroying a modelView', function () {
 
     describe('_isDestroyed property', function () {
         beforeEach(function () {
-            this.modelView = new Backbone.ViewStructure.ModelView();
+            this.modelView = new ViewStructure.ModelView();
         });
 
         it('should be set to false before destroy', function () {
@@ -147,9 +147,9 @@ describe('when destroying a modelView', function () {
     });
 });
 
-describe('when destroying a modelView and returning false from the onBeforeDestroy method', function () {
+xdescribe('when destroying a modelView and returning false from the onBeforeDestroy method', function () {
     beforeEach(function () {
-        this.modelView = new Backbone.ViewStructure.ModelView();
+        this.modelView = new ViewStructure.ModelView();
 
         this.removeSpy = this.sinon.spy(this.modelView, '_removeElement');
 
@@ -174,9 +174,9 @@ describe('when destroying a modelView and returning false from the onBeforeDestr
     });
 });
 
-describe('when destroying a view and returning undefined from the onBeforeDestroy method', function () {
+xdescribe('when destroying a view and returning undefined from the onBeforeDestroy method', function () {
     beforeEach(function () {
-        this.modelView = new Backbone.ViewStructure.ModelView();
+        this.modelView = new ViewStructure.ModelView();
 
         this.removeSpy = this.sinon.spy(this.modelView, '_removeElement');
 
@@ -207,9 +207,9 @@ describe('when destroying a view and returning undefined from the onBeforeDestro
     });
 });
 
-describe('when destroying a view that is already destroyed', function () {
+xdescribe('when destroying a view that is already destroyed', function () {
     beforeEach(function () {
-        this.modelView = new Backbone.ViewStructure.ModelView();
+        this.modelView = new ViewStructure.ModelView();
 
         this.removeSpy = sinon.spy(this.modelView, '_removeElement');
         this.destroyStub = sinon.stub();
@@ -233,29 +233,49 @@ describe('when destroying a view that is already destroyed', function () {
 });
 
 //Initialize default options
-describe('constructing a view with default options', function () {
+//TODO: define and save parameters on class
+xdescribe('constructing a view with default options', function () {
     beforeEach(function () {
         this.pendingModel = {pending: true};
-        this.noDataModel = {noData: true};
         this.errorModel = {error: true};
 
-        this.ModelView = Backbone.ViewStructure.ModelView.extend();
+        this.ModelView = ViewStructure.ModelView.extend();
     });
 
     it('should take and store modelView pendingModel', function () {
-        this.modelView = new this.ModelView({pendingModel: this.pendingModel});
-        expect(this.modelView.pendingModel).to.deep.equal(this.pendingModel);
+        this.modelView = new this.ModelView({requestModel: this.pendingModel});
+        expect(this.modelView.options.requestModel).to.deep.equal(this.pendingModel);
     });
 
     it('should have pendingModel undefined by default', function () {
         this.modelView = new this.ModelView();
-        expect(this.modelView.pendingModel).to.be.undefined;
+        expect(this.modelView.options.pendingModel).to.be.undefined;
+    });
+});
+
+//Testing internal functions
+describe('when serializing model', function () {
+
+    beforeEach(function () {
+        this.modelDataB = {key: 'value'};
+        this.modelB = new Backbone.Model(this.modelDataB);
+        this.ViewM = ViewStructure.ModelView.extend({
+            template: '<span></span>'
+        });
+        //TODO: !!! if this.ViewM then ok - don't cache template
+        this.viewM = new ViewStructure.ModelView({
+            model: this.modelB
+        });
+    });
+
+    it('should return all attributes', function () {
+        expect(this.viewM.serializeData()).to.be.eql(this.modelDataB);
     });
 });
 
 describe('when constructing a modelView with Backbone viewOptions', function () {
     it('should attach the viewOptions to the view if options are on the view', function () {
-        this.ModelView = Backbone.ViewStructure.ModelView.extend({
+        this.ModelView = ViewStructure.ModelView.extend({
             className: '.some-class'
         });
         this.modelView = new this.ModelView();
@@ -263,7 +283,7 @@ describe('when constructing a modelView with Backbone viewOptions', function () 
     });
 
     it('should attach the viewOptions to the collectionView', function () {
-        this.CollectionView = Backbone.ViewStructure.CollectionView.extend({
+        this.CollectionView = ViewStructure.CollectionView.extend({
             className: '.some-class'
         });
         this.collectionView = new this.CollectionView();
@@ -271,7 +291,7 @@ describe('when constructing a modelView with Backbone viewOptions', function () 
     });
 
     it('should attach the viewOptions to the collectionModelView', function () {
-        this.CollectionModelView = Backbone.ViewStructure.CollectionModelView.extend({
+        this.CollectionModelView = ViewStructure.CollectionModelView.extend({
             className: '.some-class'
         });
         this.collectionModelView = new this.CollectionModelView();
@@ -279,7 +299,7 @@ describe('when constructing a modelView with Backbone viewOptions', function () 
     });
 
     it('should attach the viewOptions to the layout', function () {
-        this.LayoutView = Backbone.ViewStructure.Layout.extend({
+        this.LayoutView = ViewStructure.Layout.extend({
             className: '.some-class'
         });
         this.layoutView = new this.LayoutView();
@@ -287,44 +307,125 @@ describe('when constructing a modelView with Backbone viewOptions', function () 
     });
 });
 
-//Testing internal functions
-describe('when serializing model', function () {
-    var modelData = {key: 'value'};
-    var model;
-    var view;
+describe('when call onRender/onBeforeRender method', function () {
 
     beforeEach(function () {
-        model = new Backbone.Model(modelData);
-        view = new Backbone.ViewStructure.ModelView({
-            model: model
-        });
+        this.onRenderStub = this.sinon.stub();
+        this.onBeforeRenderStub = this.sinon.stub();
+        this.modelView = new (ViewStructure.ModelView.extend({
+            onRender: this.onRenderStub,
+            onBeforeRender: this.onBeforeRenderStub
+        }));
+        this.modelView.render();
     });
 
-    it('should return all attributes', function () {
-        expect(view.serializeData()).to.be.eql(modelData);
+    it('should call onRender', function () {
+        expect(this.onRenderStub).to.have.been.calledOnce;
+    });
+
+    it('should call onBeforeRender', function () {
+        expect(this.onBeforeRenderStub).to.have.been.calledOnce;
     });
 });
 
-describe('model view', function () {
-    'use strict';
-    beforeEach(function(){
+//Rendering
+describe('when rendering', function () {
+    beforeEach(function () {
         this.modelData = {key1: 'val1'};
-        this.collectionData = [{key1: 'val1'}, {key1: 'val2'}];
+        this.collectionData = [{key1: 'val1'}, {key2: 'val2'}];
         this.model = new Backbone.Model(this.modelData);
         this.collection = new Backbone.Collection(this.collectionData);
-        this.modelView = new Backbone.ViewStructure.ModelView({
-            model: this.model
+
+        this.template = 'template';
+        this.templateStub = this.sinon.stub().returns(this.template);
+    });
+
+    describe('when model state rendering (pending, error, noData)', function() {
+        beforeEach(function() {
+            before();
+            setContent('<div id="content"></div>');
+            setContent('<div id="content2"></div>');
+            this.ModelView = ViewStructure.ModelView.extend({
+                el: '#content',
+                template: "<div id='modelTemplate'><%= key1 %></div>",
+                options: {
+                    requestTemplate: "<div id='pending'><%= message %></div>",
+                    errorTemplate: "<div id='error'><%= message %></div>"
+                }
+            });
+        });
+        afterEach(function(){
+            after();
         });
 
-        this.template = 'testwrapper';
-        this.templateStub = sinon.stub().returns(this.template);
+        it('should be rendered', function() {
+            var model = new Backbone.Model(this.modelData);
+            var modelView = new this.ModelView({
+                model: model
+            });
+            modelView.render();
+            expect(modelView.isRendered()).to.be.true;
+        });
+
+        it('should render pending template in DOM', function() {
+            var model = new Backbone.Model(this.modelData);
+            var modelView = new this.ModelView({
+                model: model,
+                requestModel: {message: 'pending'},
+                modelEvents: true
+            });
+            model.trigger('request');
+            expect(modelView.el.innerHTML).to.contain('<div id="pending">pending</div>');
+        });
+
+        it('should not render pending template in DOM, no template', function() {
+            var model = new Backbone.Model(this.modelData);
+            var noPendingModelView = new this.ModelView({
+                model: model,
+                modelEvents: true
+            });
+            this.model.trigger('request');
+            expect(noPendingModelView.el.innerHTML).to.contain('');
+        });
+
+        it('should render error template in DOM', function() {
+            var model = new Backbone.Model(this.modelData);
+            var modelView = new this.ModelView({
+                model: model,
+                errorModel: {message: 'error'},
+                modelEvents: true
+            });
+            model.trigger('error');
+            expect(modelView.el.innerHTML).to.contain('<div id="error">error</div>');
+        });
+
+        it('should render model template in DOM', function() {
+            var ModelView = ViewStructure.ModelView.extend({
+                el: '#content',
+                template: "<div id='modelTemplate'><%= key1 %></div>",
+                options: {
+                    requestTemplate: "<div id='pending'><%= message %></div>",
+                    errorTemplate: "<div id='error'><%= message %></div>"
+                }
+            });
+            // var ModelView2 = ViewStructure.ModelView.extend({
+            //     el: '#content2',
+            //     template: "<div id='modelTemplate'><%= key1 %></div>"
+            // });
+            var model = new Backbone.Model(this.modelData);
+            var modelView = new ModelView({
+                model: model,
+                modelEvents: true
+            });
+            // var modelView2 = new ModelView2({
+            //     model: model
+            // });
+            model.trigger('sync');
+            modelView.render()
+            //modelView2.render();
+            expect(modelView.el.innerHTML).to.contain('<div id="modelTemplate">val1</div>');
+        });
+
 
     });
-
-    xit('karma/jasmine test', function (done) {
-        var id = true;
-        expect(id).toBe(true);
-        done();
-    });
-
 });

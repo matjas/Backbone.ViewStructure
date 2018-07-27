@@ -263,6 +263,8 @@
 
     var ViewStructure = {};
 
+    var defaultModelEvents = ['sync', 'error', 'request'];
+
     /**
      * @alias module:ViewStructurePlugs
      * @class BaseView
@@ -280,8 +282,9 @@
         //Compile template and store it into cache
         buildTemplateCache: function () {
             var proto = Object.getPrototypeOf(this);
-
+            console.log('template cache')
             if (proto.templateCache) {
+                console.log('has template')
                 return;
             }
             proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
@@ -332,20 +335,20 @@
 
         constructor: function (options) {
             options = options || {};
+
             ViewStructure.BaseView.call(this, options);
 
-            this.pendingModel = options.pendingModel;
-            this.noDataModel = options.noDataModel;
-            this.errorModel = options.errorModel;
+            this.options = _.extend({}, _.result(this, 'options'), options);
 
-            if (options.modelEvents) {
-                this._bindModelEvents(options.modelEvents);
+            //apply default model events - request, sync, error
+            if (_.isBoolean(options.modelEvents) && options.modelEvents) {
+                this._bindModelEvents();
             }
         },
 
-        _bindModelEvents: function (events) {
-            _.each(events, function (val, key) {
-                this.listenTo(this.model, key, this[val]);
+        _bindModelEvents: function () {
+            _.each(defaultModelEvents, function (val) {
+                this.listenTo(this.model, val, this['on' + val]);
             }, this);
         },
 
@@ -368,8 +371,8 @@
         },
 
         _renderState: function (state) {
-            var template = this._getTemplate(this[state + 'Template']);
-            var stateModel = this[state + 'Model'];
+            var template = this._getTemplate(this.options[state + 'Template']);
+            var stateModel = this.options[state + 'Model'];
 
             if (!template || !stateModel) {
                 return;
@@ -379,21 +382,21 @@
             this.$el.html(renderedHtml);
         },
 
-        renderPending: function () {
-            if (_.isFunction(this.onPending)) {
-                this.onPending();
+        onrequest: function () {
+            if (_.isFunction(this.onRequest)) {
+                this.onRequest();
             }
-            this._renderState('pending');
+            this._renderState('request');
         },
 
-        renderError: function (m, xhr, e) {
+        onerror: function (m, xhr, e) {
             if (_.isFunction(this.onError)) {
                 this.onError(e);
             }
             this._renderState('error');
         },
 
-        renderSync: function (m, data, e) {
+        onsync: function (m, data, e) {
             if (_.isFunction(this.onSync)) {
                 this.onSync(data);
             }
@@ -838,95 +841,95 @@
         }
     });
 
-    // ViewStructure.Cycle = ViewStructure.CollectionModelView.extend({
-    //
-    //     constructor: function (options) {
-    //         ViewStructure.CollectionModelView.call(this, options);
-    //
-    //         this.on('modelAdded modelRemoved render', this._onCollectionChange);
-    //     },
-    //     onInitialization: function (){
-    //         if (!this.collection) {return;}
-    //
-    //         this._layoutCount = this.layoutCount;
-    //         var shift = this.shift();
-    //         var model;
-    //         var models = [];
-    //         for (var i = 0; i < this._layoutCount; i++) {
-    //             model = this.getByCycledIndex(this.focusIdx - shift + i);
-    //             model && models.push(model.toJSON());
-    //         }
-    //         if (models.length > 0) {
-    //             this.collection.set(models);
-    //         }
-    //     },
-    //     /**
-    //      * Shift of focused item from middle of list.
-    //      */
-    //     focusShift: undefined,
-    //     /**
-    //      * Number of item displayed in layout
-    //      */
-    //     layoutCount: 1,
-    //     /**
-    //      * Focus index
-    //      */
-    //     focusIdx: 1,
-    //     /**
-    //      * Enables animation stop in case when scroller moves faster then animation
-    //      */
-    //     breakAnimation: false,
-    //
-    //     _onCollectionChange: function () {
-    //         this.trigger("focus", this._getFocusedChild(this.focusIdx));
-    //     },
-    //     _getFocusedChild: function (index) {
-    //         return this.findByIndex(index);
-    //     },
-    //     getFocusedView: function () {
-    //         return this._getFocusedChild(this.focusIdx);
-    //     },
-    //     //get focused model
-    //     focused: function () {
-    //         var view = this._getFocusedChild(this.focusIdx);
-    //         return view.model;
-    //     },
-    //     forward: function () {
-    //         var _this = this;
-    //         if (this.collection && this.collection.length > 1) {
-    //             var lastModel = this.collection.last();
-    //             this.collection.pop();
-    //             this.collection.unshift(lastModel);
-    //             this.focusIdx++;
-    //         }
-    //     },
-    //     back: function () {
-    //         if (this.collection && this.collection.length > 1) {
-    //             var firstModel = this.collection.first();
-    //             this.collection.shift();
-    //             this.collection.push(firstModel);
-    //             this.focusIdx--;
-    //         }
-    //     },
-    //     _getByCycledIndex: function (idx) {
-    //         idx = idx % this.collection.length;
-    //         if (idx < 0) {
-    //             idx += this.collection.length;
-    //         }
-    //         return this.collection.at(idx);
-    //     },
-    //     getByCycledIndex: function (idx) {
-    //         return this._getByCycledIndex(idx);
-    //     },
-    //     shift: function () {
-    //         if (this.focusShift !== undefined) {
-    //             return parseInt(this._layoutCount / 2 + this.focusShift);
-    //         }
-    //         return parseInt(this._layoutCount / 2);
-    //
-    //     }
-    // });
-    // _.extend(ViewStructure.Cycle.prototype, Mixins.Animation);
+    ViewStructure.Cycle = ViewStructure.CollectionModelView.extend({
+
+        constructor: function (options) {
+            ViewStructure.CollectionModelView.call(this, options);
+
+            this.on('modelAdded modelRemoved render', this._onCollectionChange);
+        },
+        onInitialization: function (){
+            if (!this.collection) {return;}
+
+            this._layoutCount = this.layoutCount;
+            var shift = this.shift();
+            var model;
+            var models = [];
+            for (var i = 0; i < this._layoutCount; i++) {
+                model = this.getByCycledIndex(this.focusIdx - shift + i);
+                model && models.push(model.toJSON());
+            }
+            if (models.length > 0) {
+                this.collection.set(models);
+            }
+        },
+        /**
+         * Shift of focused item from middle of list.
+         */
+        focusShift: undefined,
+        /**
+         * Number of item displayed in layout
+         */
+        layoutCount: 1,
+        /**
+         * Focus index
+         */
+        focusIdx: 1,
+        /**
+         * Enables animation stop in case when scroller moves faster then animation
+         */
+        breakAnimation: false,
+
+        _onCollectionChange: function () {
+            this.trigger("focus", this._getFocusedChild(this.focusIdx));
+        },
+        _getFocusedChild: function (index) {
+            return this.findByIndex(index);
+        },
+        getFocusedView: function () {
+            return this._getFocusedChild(this.focusIdx);
+        },
+        //get focused model
+        focused: function () {
+            var view = this._getFocusedChild(this.focusIdx);
+            return view.model;
+        },
+        forward: function () {
+            var _this = this;
+            if (this.collection && this.collection.length > 1) {
+                var lastModel = this.collection.last();
+                this.collection.pop();
+                this.collection.unshift(lastModel);
+                this.focusIdx++;
+            }
+        },
+        back: function () {
+            if (this.collection && this.collection.length > 1) {
+                var firstModel = this.collection.first();
+                this.collection.shift();
+                this.collection.push(firstModel);
+                this.focusIdx--;
+            }
+        },
+        _getByCycledIndex: function (idx) {
+            idx = idx % this.collection.length;
+            if (idx < 0) {
+                idx += this.collection.length;
+            }
+            return this.collection.at(idx);
+        },
+        getByCycledIndex: function (idx) {
+            return this._getByCycledIndex(idx);
+        },
+        shift: function () {
+            if (this.focusShift !== undefined) {
+                return parseInt(this._layoutCount / 2 + this.focusShift);
+            }
+            return parseInt(this._layoutCount / 2);
+
+        }
+    });
+    _.extend(ViewStructure.Cycle.prototype, Mixins.Animation);
 
     // ViewStructure.ScrollArea = ViewStructure.ModelView.extend({
     //     step: 20,
