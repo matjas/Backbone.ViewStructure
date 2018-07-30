@@ -184,8 +184,6 @@
 
     //ViewMixins
     Mixins.View = {
-        //default template
-        template: "<div></div>",
 
         _isRendered: false,
 
@@ -282,16 +280,26 @@
         //Compile template and store it into cache
         buildTemplateCache: function () {
             var proto = Object.getPrototypeOf(this);
-            console.log('template cache')
-            if (proto.templateCache) {
-                console.log('has template')
+
+            if (proto.templateCache && this.template) {
                 return;
             }
-            proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
+            if (!this.template) {
+                proto.templateCache = _.noop();
+            } else {
+                proto.templateCache = _.isFunction(this.template) ? this.template : _.template(this.template);
+            }
         },
 
         render: function () {
             var data;
+
+            if (this._isDestroyed) { return this; }
+
+            if (!this.templateCache) {
+                //return
+                throw Error("Can not render while template is not valid");
+            }
 
             //serialize data before render. Can be override  by user.
             if (_.isFunction(this.serializeData)) {

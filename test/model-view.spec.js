@@ -63,7 +63,7 @@ describe('creating ModelView', function () {
  * Destroy View tests
  */
 
-xdescribe('when using listenTo for the "destroy" event on itself, and destroying the modelView', function () {
+describe('when using listenTo for the "destroy" event on itself, and destroying the modelView', function () {
     beforeEach(function () {
         this.destroyStub = this.sinon.stub();
         this.modelView = new ViewStructure.ModelView();
@@ -76,7 +76,7 @@ xdescribe('when using listenTo for the "destroy" event on itself, and destroying
     });
 });
 
-xdescribe('when destroying a modelView', function () {
+describe('when destroying a modelView', function () {
     beforeEach(function () {
         this.modelView = new ViewStructure.ModelView();
 
@@ -147,7 +147,7 @@ xdescribe('when destroying a modelView', function () {
     });
 });
 
-xdescribe('when destroying a modelView and returning false from the onBeforeDestroy method', function () {
+describe('when destroying a modelView and returning false from the onBeforeDestroy method', function () {
     beforeEach(function () {
         this.modelView = new ViewStructure.ModelView();
 
@@ -174,7 +174,7 @@ xdescribe('when destroying a modelView and returning false from the onBeforeDest
     });
 });
 
-xdescribe('when destroying a view and returning undefined from the onBeforeDestroy method', function () {
+describe('when destroying a view and returning undefined from the onBeforeDestroy method', function () {
     beforeEach(function () {
         this.modelView = new ViewStructure.ModelView();
 
@@ -207,7 +207,7 @@ xdescribe('when destroying a view and returning undefined from the onBeforeDestr
     });
 });
 
-xdescribe('when destroying a view that is already destroyed', function () {
+describe('when destroying a view that is already destroyed', function () {
     beforeEach(function () {
         this.modelView = new ViewStructure.ModelView();
 
@@ -233,8 +233,7 @@ xdescribe('when destroying a view that is already destroyed', function () {
 });
 
 //Initialize default options
-//TODO: define and save parameters on class
-xdescribe('constructing a view with default options', function () {
+describe('constructing a view with default options', function () {
     beforeEach(function () {
         this.pendingModel = {pending: true};
         this.errorModel = {error: true};
@@ -262,8 +261,12 @@ describe('when serializing model', function () {
         this.ViewM = ViewStructure.ModelView.extend({
             template: '<span></span>'
         });
-        //TODO: !!! if this.ViewM then ok - don't cache template
-        this.viewM = new ViewStructure.ModelView({
+
+        this.viewM = new this.ViewM({
+            model: this.modelB
+        });
+        //this should be from templateCache
+        this.viewM2 = new this.ViewM({
             model: this.modelB
         });
     });
@@ -313,6 +316,7 @@ describe('when call onRender/onBeforeRender method', function () {
         this.onRenderStub = this.sinon.stub();
         this.onBeforeRenderStub = this.sinon.stub();
         this.modelView = new (ViewStructure.ModelView.extend({
+            template: '<div></div>',
             onRender: this.onRenderStub,
             onBeforeRender: this.onBeforeRenderStub
         }));
@@ -340,11 +344,10 @@ describe('when rendering', function () {
         this.templateStub = this.sinon.stub().returns(this.template);
     });
 
-    describe('when model state rendering (pending, error, noData)', function() {
+    describe('model state (pending, error, noData)', function() {
         beforeEach(function() {
             before();
             setContent('<div id="content"></div>');
-            setContent('<div id="content2"></div>');
             this.ModelView = ViewStructure.ModelView.extend({
                 el: '#content',
                 template: "<div id='modelTemplate'><%= key1 %></div>",
@@ -359,29 +362,26 @@ describe('when rendering', function () {
         });
 
         it('should be rendered', function() {
-            var model = new Backbone.Model(this.modelData);
             var modelView = new this.ModelView({
-                model: model
+                model: this.model
             });
             modelView.render();
             expect(modelView.isRendered()).to.be.true;
         });
 
         it('should render pending template in DOM', function() {
-            var model = new Backbone.Model(this.modelData);
             var modelView = new this.ModelView({
-                model: model,
+                model: this.model,
                 requestModel: {message: 'pending'},
                 modelEvents: true
             });
-            model.trigger('request');
+            this.model.trigger('request');
             expect(modelView.el.innerHTML).to.contain('<div id="pending">pending</div>');
         });
 
         it('should not render pending template in DOM, no template', function() {
-            var model = new Backbone.Model(this.modelData);
             var noPendingModelView = new this.ModelView({
-                model: model,
+                model: this.model,
                 modelEvents: true
             });
             this.model.trigger('request');
@@ -408,24 +408,58 @@ describe('when rendering', function () {
                     errorTemplate: "<div id='error'><%= message %></div>"
                 }
             });
-            // var ModelView2 = ViewStructure.ModelView.extend({
-            //     el: '#content2',
-            //     template: "<div id='modelTemplate'><%= key1 %></div>"
-            // });
-            var model = new Backbone.Model(this.modelData);
             var modelView = new ModelView({
-                model: model,
+                model: this.model,
                 modelEvents: true
             });
-            // var modelView2 = new ModelView2({
-            //     model: model
-            // });
-            model.trigger('sync');
-            modelView.render()
-            //modelView2.render();
+            this.model.trigger('sync');
             expect(modelView.el.innerHTML).to.contain('<div id="modelTemplate">val1</div>');
         });
 
 
+    });
+
+    describe('without valid template', function() {
+        beforeEach(function() {
+            this.modelView = new ViewStructure.ModelView();
+        });
+
+        //TODO: why this test doesn't work
+        xit('should set _isRendered to false', function() {
+            expect(this.modelView.render).to.throw('Can not render while template is not valid.');
+        });
+    });
+
+    describe('when instantiating a view with a non existing DOM element', function() {
+        beforeEach(function() {
+            //this.setFixtures('<div id="foo"><span class="element">bar</span></div>');
+            this.modelView = new ViewStructure.ModelView({
+                el: '#nonexistent'
+            });
+        });
+
+        it('should not be rendered', function() {
+            expect(this.modelView._isRendered).to.be.false;
+        });
+    });
+
+    describe('when an item view has a model and is rendered', function() {
+        beforeEach(function() {
+            this.modelView = new (ViewStructure.ModelView.extend({
+                template: this.templateStub,
+                model: this.model
+            }));
+
+            this.serializeDataSpy = this.sinon.spy(this.modelView, 'serializeData');
+            this.modelView.render();
+        });
+
+        it('should serialize the model', function() {
+            expect(this.serializeDataSpy).to.have.been.calledOnce;
+        });
+
+        it('should render the template with the serialized model', function() {
+            expect(this.templateStub).to.have.been.calledWith(this.modelData);
+        });
     });
 });
