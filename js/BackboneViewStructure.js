@@ -367,7 +367,7 @@
                 data = this.model.toJSON();
             }
 
-            return data;
+            return data || {};
         },
 
         _getTemplate: function (template) {
@@ -428,7 +428,7 @@
                 data = {items: this.collection.toJSON()};
             }
 
-            return data;
+            return data || {};
         }
     });
 

@@ -59,6 +59,52 @@ describe('creating ModelView', function () {
     });
 });
 
+describe('creating collectionModelView', function () {
+
+    beforeEach(function () {
+        this.initializeStub = this.sinon.stub();
+
+        var CollectionModelView = ViewStructure.CollectionModelView.extend({
+            initialize: this.initializeStub
+        });
+
+        this.collectionModelView = new CollectionModelView();
+
+        before();
+    });
+
+    afterEach(function () {
+        after();
+    });
+
+    it('should call initialize', function () {
+        expect(this.initializeStub).to.have.been.calledOnce;
+    });
+});
+
+describe('creating layoutView', function () {
+
+    beforeEach(function () {
+        this.initializeStub = this.sinon.stub();
+
+        var LayoutView = ViewStructure.Layout.extend({
+            initialize: this.initializeStub
+        });
+
+        this.layoutView = new LayoutView();
+
+        before();
+    });
+
+    afterEach(function () {
+        after();
+    });
+
+    it('should call initialize', function () {
+        expect(this.initializeStub).to.have.been.calledOnce;
+    });
+});
+
 /**
  * Destroy View tests
  */
@@ -69,6 +115,32 @@ describe('when using listenTo for the "destroy" event on itself, and destroying 
         this.modelView = new ViewStructure.ModelView();
         this.modelView.listenTo(this.modelView, 'destroy', this.destroyStub);
         this.modelView.destroy();
+    });
+
+    it('should trigger the "destroy" event', function () {
+        expect(this.destroyStub).to.have.been.called;
+    });
+});
+
+describe('when using listenTo for the "destroy" event on itself, and destroying the collectionModelView', function () {
+    beforeEach(function () {
+        this.destroyStub = this.sinon.stub();
+        this.collectionModelView = new ViewStructure.CollectionModelView();
+        this.collectionModelView.listenTo(this.collectionModelView, 'destroy', this.destroyStub);
+        this.collectionModelView.destroy();
+    });
+
+    it('should trigger the "destroy" event', function () {
+        expect(this.destroyStub).to.have.been.called;
+    });
+});
+
+describe('when using listenTo for the "destroy" event on itself, and destroying the layoutView', function () {
+    beforeEach(function () {
+        this.destroyStub = this.sinon.stub();
+        this.layoutView = new ViewStructure.Layout();
+        this.layoutView.listenTo(this.layoutView, 'destroy', this.destroyStub);
+        this.layoutView.destroy();
     });
 
     it('should trigger the "destroy" event', function () {
@@ -156,6 +228,7 @@ describe('when destroying a modelView and returning false from the onBeforeDestr
         this.destroyStub = this.sinon.stub();
         this.modelView.on('destroy', this.destroyStub);
 
+        this.onBeforeDestroyStub = this.sinon.stub().returns(false);
         this.modelView.onBeforeDestroy = this.onDestroyStub;
 
         this.modelView.destroy();
@@ -229,6 +302,212 @@ describe('when destroying a view that is already destroyed', function () {
 
     it('should leave _isDestroyed as true', function () {
         expect(this.modelView).to.be.have.property('_isDestroyed', true);
+    });
+});
+
+describe('when destroying a collectionModelView', function () {
+    beforeEach(function () {
+        this.collectionData = [{key1: 'val1'}, {key1: 'val2'}];
+        var ModelView = ViewStructure.ModelView.extend({
+            template: "<div></div>"
+        });
+        var CollectionModelView = ViewStructure.CollectionModelView.extend({
+            modelView: ModelView
+        });
+        this.view = new CollectionModelView({
+            collection: new Backbone.Collection(this.collectionData)
+        });
+
+        this.sinon.spy(this.view, '_removeElement');
+        this.sinon.spy(this.view, '_removeChildren');
+        this.sinon.spy(this.view, 'closeChildren');
+        this.sinon.spy(this.view, 'closeChildView');
+        this.sinon.spy(this.view, 'destroy');
+
+        this.onDestroyStub = this.sinon.stub();
+        this.view.onDestroy = this.onDestroyStub;
+
+        this.destroyStub = this.sinon.stub();
+        this.view.on('destroy', this.destroyStub);
+
+        this.view.render();
+        this.view.remove();
+    });
+
+    it('should trigger the destroy event', function () {
+        expect(this.destroyStub).to.have.been.calledOnce;
+    });
+
+    it('should remove the collectionModelView', function () {
+        expect(this.view._removeElement).to.have.been.calledOnce;
+    });
+
+    it('should remove the collectionModelView children', function () {
+        expect(this.view._removeChildren).to.have.been.calledOnce;
+    });
+
+    it('should call closeChildren', function () {
+        expect(this.view.closeChildren).to.have.been.calledOnce;
+    });
+
+    it('should call closeChildView', function () {
+        expect(this.view.closeChildView).to.have.been.calledTwice;
+    });
+
+    it('should set the collectionModelView _isDestroyed to true', function () {
+        expect(this.view).to.be.have.property('_isDestroyed', true);
+    });
+
+    it('should set the collectionModelView _isRendered to false', function () {
+        expect(this.view).to.be.have.property('_isRendered', false);
+    });
+
+    it('should return the View', function () {
+        expect(this.view.destroy).to.have.returned(this.view);
+    });
+
+    describe('and it has already been destroyed', function () {
+        beforeEach(function () {
+            this.view.destroy();
+            this.view.destroy();
+        });
+
+        it('should return the View', function () {
+            expect(this.view.destroy).to.have.returned(this.view);
+        });
+
+        it('should remove the collectionModelView', function () {
+            expect(this.view._removeElement).to.have.been.calledOnce;
+        });
+    });
+
+    describe('_isDestroyed property', function () {
+        beforeEach(function () {
+            this.view = new ViewStructure.CollectionModelView();
+        });
+
+        it('should be set to false before destroy', function () {
+            expect(this.view).to.be.have.property('_isDestroyed', false);
+        });
+
+        it('should be set to true after destroying', function () {
+            this.view.destroy();
+            expect(this.view).to.be.have.property('_isDestroyed', true);
+        });
+    });
+});
+
+//collectionModelView - "add collection event"
+describe('when add element to collection in collectionModelView', function () {
+    beforeEach(function () {
+        this.collectionData = [{key1: 'val1'}];
+        this.collection = new Backbone.Collection(this.collectionData);
+        var ModelView = ViewStructure.ModelView.extend({
+            template: "<div></div>"
+        });
+        var CollectionModelView = ViewStructure.CollectionModelView.extend({
+            modelView: ModelView
+        });
+        this.view = new CollectionModelView({
+            collection: this.collection
+        });
+
+        this.sinon.spy(this.view, '_renderModel');
+        this.sinon.spy(this.view, 'modelAdded');
+
+        this.modelAddedStub = this.sinon.stub();
+        this.view.on('modelAdded', this.modelAddedStub);
+
+        this.view.render();
+        this.collection.add({key2: 'val2'});
+    });
+
+    it('should trigger the modelAdded event', function () {
+        expect(this.modelAddedStub).to.have.been.calledOnce;
+    });
+
+    it('should call the _renderModel twice', function () {
+        expect(this.view._renderModel).to.have.been.calledTwice;
+    });
+
+    it('should  call the modelAdded once', function () {
+        expect(this.view.modelAdded).to.have.been.calledOnce;
+    });
+});
+
+//collectionModelView - "remove collection event"
+describe('when remove element from collection in collectionModelView', function () {
+    beforeEach(function () {
+        this.collectionData = [{key1: 'val1'}, {key2: 'val2'}];
+        this.collection = new Backbone.Collection(this.collectionData);
+        var ModelView = ViewStructure.ModelView.extend({
+            template: "<div></div>"
+        });
+        var CollectionModelView = ViewStructure.CollectionModelView.extend({
+            modelView: ModelView
+        });
+        this.view = new CollectionModelView({
+            collection: this.collection
+        });
+
+        this.sinon.spy(this.view, 'closeChildView');
+        this.sinon.spy(this.view, 'modelRemoved');
+
+        this.modelRemovedStub = this.sinon.stub();
+        this.view.on('modelRemoved', this.modelRemovedStub);
+
+        this.view.render();
+        this.collection.remove(this.collection.at(1));
+    });
+
+    it('should trigger the modelRemoved event', function () {
+        expect(this.modelRemovedStub).to.have.been.calledOnce;
+    });
+
+    it('should call the closeChildView once', function () {
+        expect(this.view.closeChildView).to.have.been.calledOnce;
+    });
+
+    it('should  call the modelRemoved once', function () {
+        expect(this.view.modelRemoved).to.have.been.calledOnce;
+    });
+});
+
+//collectionModelView - "reset collection event"
+describe('when reset collection in collectionModelView', function () {
+    beforeEach(function () {
+        this.collectionData = [{key1: 'val1'}, {key2: 'val2'}];
+        this.collection = new Backbone.Collection(this.collectionData);
+        var ModelView = ViewStructure.ModelView.extend({
+            template: "<div></div>"
+        });
+        var CollectionModelView = ViewStructure.CollectionModelView.extend({
+            modelView: ModelView
+        });
+        this.view = new CollectionModelView({
+            collection: this.collection
+        });
+
+        this.sinon.spy(this.view, 'render');
+        this.sinon.spy(this.view, '_renderModel');
+
+        this.renderStub = this.sinon.stub();
+        this.view.on('render', this.renderStub);
+
+        this.view.render();
+        this.collection.reset();
+    });
+
+    it('should trigger the render event', function () {
+        expect(this.renderStub).to.have.been.calledTwice;
+    });
+
+    it('should call the render twice', function () {
+        expect(this.view.render).to.have.been.calledTwice;
+    });
+
+    it('should  call the _renderModel twice', function () {
+        expect(this.view._renderModel).to.have.been.calledTwice;
     });
 });
 
@@ -432,10 +711,10 @@ describe('when rendering', function () {
 
     describe('when instantiating a view with a non existing DOM element', function() {
         beforeEach(function() {
-            //this.setFixtures('<div id="foo"><span class="element">bar</span></div>');
-            this.modelView = new ViewStructure.ModelView({
+            var ModelView = ViewStructure.ModelView.extend({
                 el: '#nonexistent'
             });
+            this.modelView = new ModelView();
         });
 
         it('should not be rendered', function() {
@@ -460,6 +739,47 @@ describe('when rendering', function () {
 
         it('should render the template with the serialized model', function() {
             expect(this.templateStub).to.have.been.calledWith(this.modelData);
+        });
+    });
+
+});
+
+describe('when serializing view data', function() {
+    beforeEach(function() {
+        this.modelData = {key1: 'val1'};
+        this.collectionData = [{key1: 'val1'}, {kay1: 'val2'}];
+
+        this.modelView = new ViewStructure.ModelView();
+        this.sinon.spy(this.modelView, 'serializeData');
+
+        this.collectionView = new ViewStructure.CollectionView();
+        this.sinon.spy(this.collectionView, 'serializeData');
+    });
+
+    it('should return an empty object without data', function() {
+        expect(this.modelView.serializeData()).to.deep.equal({});
+        expect(this.collectionView.serializeData()).to.deep.equal({});
+    });
+
+    describe('and the modelView has a model', function() {
+        beforeEach(function() {
+            this.modelView.model = new Backbone.Model(this.modelData);
+            this.modelView.serializeData();
+        });
+
+        it('should call serializeData', function() {
+            expect(this.modelView.serializeData).to.have.been.calledOnce;
+        });
+    });
+
+    describe('and the collectionView has a model', function() {
+        beforeEach(function() {
+            this.collectionView.model = new Backbone.Collection(this.collectionData);
+            this.collectionView.serializeData();
+        });
+
+        it('should call serializeData', function() {
+            expect(this.collectionView.serializeData).to.have.been.calledOnce;
         });
     });
 });
